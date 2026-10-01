@@ -16,6 +16,7 @@ The editor, branded **Still**, now includes a draggable comparison divider, glob
 - Adjust exposure, contrast, warmth, tint, color intensity, and vibrance, with a responsive preview.
 - Edit the master and red/green/blue tone curves with draggable points, numeric values, and keyboard controls.
 - Adjust hue, intensity, and brightness for eight color ranges in **Color mix**, including matching XMP HSL fields.
+- Crop freely or use common aspect ratios, rotate in 90° steps, and undo framing changes. Both sides of the comparison keep the same framing.
 - Drag a centered before/after divider: original on the left, edits on the right. Move fully left for all edits or fully right for the original. Touch, arrow keys, Home/End, and a recenter button are supported.
 - Undo/redo edits, reset one control, or reset everything. A slider gesture is one undo step; ⌘/Ctrl+Z and ⌘/Ctrl+Shift+Z work outside text fields.
 - Export a full-size PNG while preserving transparency.
@@ -28,7 +29,7 @@ Images remain on the device. The original stays unchanged. Reloading clears the 
 
 Leave-page protection clears after PNG generation succeeds and the download starts. Browsers do not expose whether a later file-save dialog was canceled. The confirmation uses `beforeunload`, so browser interaction/permission rules apply; it does not save or recover the image session.
 
-Crop and rotation are upcoming milestones. The current interface contains only implemented controls.
+JPEG/WebP export and final interface/compatibility checks are the next milestones. The current interface contains only implemented controls.
 
 Exporting your own edits as reusable XMP presets is also planned, after the current editing/import roadmap.
 

@@ -24,6 +24,10 @@ export interface Frame {
   height: number;
   exposure: number;
   recipeKey: string;
+  geometryKey: string;
+  outputWidth: number;
+  outputHeight: number;
+  original?: Frame;
   metrics: RenderMetrics;
 }
 
@@ -38,6 +42,6 @@ export interface ExportedPhoto {
 export interface EngineApi {
   open(file: File): Promise<LoadedPhoto | 'decode-on-main'>;
   openDecoded(photo: DecodedPhoto): Promise<LoadedPhoto>;
-  render(recipe: Recipe): Frame;
+  render(recipe: Recipe, knownOriginalGeometry?: string): Frame;
   exportPng(recipe: Recipe): Promise<ExportedPhoto>;
 }

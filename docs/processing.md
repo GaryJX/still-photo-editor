@@ -1,4 +1,4 @@
-# Processing contract: engine 0.4.0
+# Processing contract: engine 0.5.0
 
 ## Input and output
 
@@ -13,7 +13,7 @@ Current import limits are 60 MiB compressed, 40 megapixels decoded, and 16,384 p
 ```json
 {
   "schemaVersion": 1,
-  "engineVersion": "0.4.0",
+  "engineVersion": "0.5.0",
   "exposure": 0,
   "contrast": 0,
   "warmth": 0,
@@ -53,6 +53,14 @@ Example: `[128, 64, 0, 127]` at +1 EV becomes `[176, 90, 0, 127]`. Identity expo
 
 Color mix adds an `hsl` recipe object with hue/saturation/luminance values for red, orange, yellow, green, aqua, blue, purple, and magenta (all default to zero). Hue centers are 0°, 30°, 60°, 120°, 180°, 240°, 270°, and 300°. Adjacent ranges blend linearly, including the red wraparound. Hue values map to ±30°, saturation multiplies by 0–2, and luminance offsets HSL lightness by up to ±0.5. Effects fade near neutral colors using `min(1, HSL saturation * 4)`; exact grays remain unchanged. Zero settings bypass HSL conversion. Adobe equivalence is approximate.
 
+## Framing
+
+The recipe includes `geometry: {crop: {x: 0, y: 0, width: 1, height: 1}, rotation: 0}` by default. Crop coordinates are normalized against the decoded, EXIF-oriented source, and rotation is a clockwise quarter-turn count (0–3). Crop edges are snapped to source pixels when applied. Rendering crops first, then rotates, then applies the color pipeline. Preview and export round normalized edges to their respective grids, so sub-preview-pixel edge differences are possible on large images.
+
+The crop dialog displays the full image at the current rotation and maps its selection back to source coordinates. Cancel does not change the recipe. A crop or rotation is one undoable edit and participates in leave-page protection. XMP preset application preserves geometry.
+
+The worker caches an unedited preview with the same geometry. Preview requests include the geometry the UI has actually displayed; a matching original is returned whenever necessary, including after superseded renders. This keeps the divider aligned without retransmitting the original for every color-only change.
+
 ## Work scheduling and memory
 
 `LatestRenderer` permits one running preview and one pending latest recipe. New requests replace the pending recipe and make older results obsolete. Opening another image invalidates outstanding preview results. A failed replacement import resumes the prior recipe on the prior source.
@@ -65,4 +73,4 @@ The canvas is updated in a layout effect so the visible pixels agree with the co
 
 History stores up to 100 immutable recipe snapshots, groups a slider gesture into one step, and clears redo when a new edit is committed. It never stores full-image history buffers. Comparison position is independent of the recipe and history.
 
-XMP import maps a documented subset of fields to this recipe; see [xmp-support.md](xmp-support.md). This engine does not yet implement crop, saved image sessions, wide-gamut/HDR output, or RAW development. No hidden alternative renderer or server-side image processing is used.
+XMP import maps a documented subset of fields to this recipe; see [xmp-support.md](xmp-support.md). This engine does not yet implement saved image sessions, wide-gamut/HDR output, or RAW development. No hidden alternative renderer or server-side image processing is used.

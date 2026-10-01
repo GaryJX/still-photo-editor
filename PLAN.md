@@ -4,9 +4,9 @@
 
 Build a useful photo editor that runs entirely in the browser, uses Rust/WebAssembly for processing, and makes editing approachable for beginners. A user should be able to open a photo, apply an XMP preset or adjust a few controls, compare the result, and download the edited image.
 
-**Status:** Milestones 0 and 1 complete and published. Milestone 2 has global light/color controls, master/RGB curves, edit history, and comparison; HSL and geometry remain. Dark mode is published. Milestone 3's initial supported XMP subset and saved library are implemented. Milestones 4–5 remain open; XMP export is queued as Milestone 6.
+**Status:** Milestones 0–3 are implemented, including HSL and crop/rotation. Dark mode and unsaved-edit protection are published. Milestones 4–5 are next, followed by XMP export (6) and `Look`/profile compatibility (7). The user explicitly requested completing the entire roadmap and publishing each tested milestone.
 
-**Next action:** Implement crop/rotation with aligned before/after previews and full-resolution exports. Continue export/UX and release checks afterwards. HSL and its XMP mappings are implemented. XMP export remains after the existing roadmap; `Look` compatibility has a separate follow-up milestone.
+**Next action:** Add JPEG/WebP export with format/quality controls, finish the responsive/accessible workflow, and run release validation. Then implement XMP export and the feasible `Look`/profile subset. Do not stop after a partial milestone unless a concrete external dependency blocks further progress.
 
 ## Product boundaries
 
@@ -136,10 +136,10 @@ If storage is unavailable or full, keep the preset usable for the current sessio
 - [x] Implement contrast, warmth/tint, and saturation/vibrance.
 - [x] Implement master/RGB curves.
 - [x] Implement HSL bands and corresponding XMP mappings.
-- [ ] Implement normalized crop and 90-degree rotation with preview/export agreement.
+- [x] Implement normalized crop and 90-degree rotation with preview/export agreement.
 - [x] Add recipe history, grouped slider gestures, per-control reset, and reset-all.
 - [x] Add before/after comparison using matching geometry. A centered, draggable divider now reveals cached original/edited previews; future crop/rotation must transform both consistently.
-- [ ] Verify identity settings, exposure math, curve endpoints, neutral color behavior, alpha handling, and operation-order fixtures.
+- [x] Verify identity settings, exposure math, curve endpoints, neutral color behavior, alpha handling, operation order, and geometric pixel mapping.
 
 **Exit condition:** the editing controls produce stable, reversible results, with a shared renderer for preview and export.
 
@@ -236,6 +236,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-09-30 — Crop and rotation:** implemented engine 0.5.0 geometry before color processing, using one output buffer. Added a crop dialog with free resizing, aspect presets, pointer movement, keyboard/numeric positioning, cancel/apply, and quarter-turn buttons. The worker caches the matching original crop and sends it until the UI acknowledges that geometry, avoiding mismatched comparison frames when renders are superseded. Sixteen Rust tests, eight frontend tests, and all 25 functional WebKit workflows passed. Checks include crop/rotation pixel locations, original alignment, exported dimensions/pixels, cancel, and one-step undo. HSL deployment (`e30a6a6`) succeeded.
 
 - **2026-09-30 — Color mix:** added engine 0.4.0 with eight HSL ranges, smooth interpolation between neighboring hue centers, neutral protection, and a zero-adjustment fast path. The UI exposes hue/intensity/brightness per color with resets, keyboard input, and gesture history. Parser version 2 maps all 24 corresponding XMP fields and preserves unspecified components. Fourteen Rust tests, six frontend tests, and 22 functional WebKit workflows passed across the main and focused correction runs. End-to-end checks cover targeted pixel changes, export agreement, undo, and partial/invalid XMP fields. A rounding issue at saturated endpoints was fixed by preserving no-op transforms exactly. Added a dedicated `Look` compatibility follow-up after the user's request.
 

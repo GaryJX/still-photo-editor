@@ -1,7 +1,8 @@
 import { defaultCurves, type Curves } from './curves';
 import { defaultHsl, type HslSettings } from './hsl';
+import { defaultGeometry, type Geometry } from './geometry';
 
-export const ENGINE_VERSION = '0.4.0';
+export const ENGINE_VERSION = '0.5.0';
 export const adjustmentKeys = ['exposure', 'contrast', 'warmth', 'tint', 'saturation', 'vibrance'] as const;
 export type Adjustment = typeof adjustmentKeys[number];
 
@@ -16,6 +17,7 @@ export interface Recipe {
   vibrance: number;
   curves: Curves;
   hsl: HslSettings;
+  geometry: Geometry;
 }
 
 export const initialRecipe: Recipe = {
@@ -23,6 +25,7 @@ export const initialRecipe: Recipe = {
   exposure: 0, contrast: 0, warmth: 0, tint: 0, saturation: 0, vibrance: 0,
   curves: defaultCurves(),
   hsl: defaultHsl(),
+  geometry: defaultGeometry(),
 };
 
 export function adjustmentValue(key: Adjustment, value: number): number {

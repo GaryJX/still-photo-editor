@@ -1,3 +1,4 @@
+mod geometry;
 mod hsl;
 use wasm_bindgen::prelude::*;
 
@@ -28,21 +29,21 @@ impl ImageEngine {
         values: &[f32],
         curve_values: &[f32],
         hsl_values: &[f32],
+        layout: &[u32],
         full_resolution: bool,
     ) -> Result<Vec<u8>, JsValue> {
         let settings = validate_settings(values).map_err(JsValue::from_str)?;
         let curves = parse_curves(curve_values).map_err(JsValue::from_str)?;
         let bands = hsl::parse(hsl_values).map_err(JsValue::from_str)?;
-        Ok(apply_adjustments(
-            if full_resolution {
-                &self.source
-            } else {
-                &self.preview
-            },
-            &settings,
-            &curves,
-            &bands,
-        ))
+        let input = if full_resolution {
+            &self.source
+        } else {
+            &self.preview
+        };
+        let geometry = geometry::Layout::parse(layout, input.len()).map_err(JsValue::from_str)?;
+        let mut output = geometry.transform(input);
+        apply_adjustments_in_place(&mut output, &settings, &curves, &bands);
+        Ok(output)
     }
 
     pub fn retained_bytes(&self) -> usize {
@@ -126,12 +127,32 @@ fn evaluate_curve(curve: &Curve, value: f32) -> f32 {
     curve.last().unwrap().1
 }
 
+#[cfg(test)]
 fn apply_adjustments(
     input: &[u8],
     settings: &[f32; 6],
     curves: &[Curve; 4],
     bands: &hsl::Bands,
 ) -> Vec<u8> {
+    let mut output = input.to_vec();
+    apply_adjustments_in_place(&mut output, settings, curves, bands);
+    output
+}
+
+fn apply_adjustments_in_place(
+    output: &mut [u8],
+    settings: &[f32; 6],
+    curves: &[Curve; 4],
+    bands: &hsl::Bands,
+) {
+    if settings.iter().all(|v| *v == 0.0)
+        && bands.iter().flatten().all(|v| *v == 0.0)
+        && curves
+            .iter()
+            .all(|curve| curve.as_slice() == [(0.0, 0.0), (1.0, 1.0)])
+    {
+        return;
+    }
     let [exposure, contrast, warmth, tint, saturation, vibrance] = *settings;
     let w = warmth / 100.0;
     let t = tint / 100.0;
@@ -162,7 +183,6 @@ fn apply_adjustments(
         }
     }
     let mix_colors = bands.iter().flatten().any(|value| *value != 0.0);
-    let mut output = input.to_vec();
     for pixel in output.chunks_exact_mut(4) {
         let rgb = [
             tables[0][pixel[0] as usize],
@@ -186,7 +206,6 @@ fn apply_adjustments(
             pixel[channel] = (color[channel].clamp(0.0, 1.0) * 255.0).round() as u8;
         }
     }
-    output
 }
 
 #[cfg(test)]
@@ -270,26 +289,56 @@ mod tests {
         let source = vec![128, 64, 32, 255];
         let engine = ImageEngine::new(source.clone(), source.clone()).unwrap();
         let first = engine
-            .render(&exposure(2.0), &IDENTITY, &[0.0; 24], false)
+            .render(
+                &exposure(2.0),
+                &IDENTITY,
+                &[0.0; 24],
+                &[1, 1, 0, 0, 1, 1, 0],
+                false,
+            )
             .unwrap();
         assert_eq!(
             engine
-                .render(&exposure(2.0), &IDENTITY, &[0.0; 24], false)
+                .render(
+                    &exposure(2.0),
+                    &IDENTITY,
+                    &[0.0; 24],
+                    &[1, 1, 0, 0, 1, 1, 0],
+                    false
+                )
                 .unwrap(),
             first
         );
         assert_eq!(
             engine
-                .render(&exposure(0.0), &IDENTITY, &[0.0; 24], true)
+                .render(
+                    &exposure(0.0),
+                    &IDENTITY,
+                    &[0.0; 24],
+                    &[1, 1, 0, 0, 1, 1, 0],
+                    true
+                )
                 .unwrap(),
             source
         );
         assert_eq!(
             engine
-                .render(&exposure(-1.0), &IDENTITY, &[0.0; 24], false)
+                .render(
+                    &exposure(-1.0),
+                    &IDENTITY,
+                    &[0.0; 24],
+                    &[1, 1, 0, 0, 1, 1, 0],
+                    false
+                )
                 .unwrap(),
             engine
-                .render(&exposure(-1.0), &IDENTITY, &[0.0; 24], true)
+                .render(
+                    &exposure(-1.0),
+                    &IDENTITY,
+                    &[0.0; 24],
+                    &[1, 1, 0, 0, 1, 1, 0],
+                    true
+                )
                 .unwrap()
         );
     }

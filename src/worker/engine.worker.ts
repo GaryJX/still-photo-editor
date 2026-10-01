@@ -5,11 +5,13 @@ import type { DecodedPhoto, EngineApi, Frame, LoadedPhoto, PhotoInfo } from './t
 import { ENGINE_VERSION, initialRecipe, recipeKey, recipeValues, type Recipe } from '../editor/recipe';
 import { curveValues } from '../editor/curves';
 import { hslValues } from '../editor/hsl';
+import { geometryKey, geometryLayout } from '../editor/geometry';
 
 const wasm = init();
 let memory: WebAssembly.Memory;
 let engine: ImageEngine | undefined;
 let info: PhotoInfo | undefined;
+let cachedOriginal: Frame | undefined;
 
 async function openDecoded(photo: DecodedPhoto): Promise<LoadedPhoto> {
   memory = (await wasm).memory;
@@ -18,6 +20,7 @@ async function openDecoded(photo: DecodedPhoto): Promise<LoadedPhoto> {
   engine = next;
   info = { width: photo.width, height: photo.height, previewWidth: photo.previewWidth, previewHeight: photo.previewHeight };
   const frame = render(initialRecipe);
+  cachedOriginal = { ...frame, pixels: frame.pixels.slice() };
   return transfer({ info, frame }, [frame.pixels.buffer as ArrayBuffer]);
 }
 
@@ -25,11 +28,16 @@ function render(recipe: Recipe, fullResolution = false): Frame {
   if (!engine || !info) throw new Error('Open a photo first.');
   if (recipe.schemaVersion !== 1 || recipe.engineVersion !== ENGINE_VERSION) throw new Error('This edit recipe is not supported.');
   const started = performance.now();
-  const pixels = engine.render(recipeValues(recipe), curveValues(recipe.curves), hslValues(recipe.hsl), fullResolution);
+  const layout = geometryLayout(fullResolution ? info.width : info.previewWidth, fullResolution ? info.height : info.previewHeight, recipe.geometry);
+  const output = geometryLayout(info.width, info.height, recipe.geometry);
+  const pixels = engine.render(recipeValues(recipe), curveValues(recipe.curves), hslValues(recipe.hsl), layout.values, fullResolution);
   return {
     pixels,
-    width: fullResolution ? info.width : info.previewWidth,
-    height: fullResolution ? info.height : info.previewHeight,
+    width: layout.width,
+    height: layout.height,
+    outputWidth: output.width,
+    outputHeight: output.height,
+    geometryKey: geometryKey(recipe.geometry),
     exposure: recipe.exposure,
     recipeKey: recipeKey(recipe),
     metrics: { renderMs: performance.now() - started, wasmMemoryBytes: memory.buffer.byteLength, retainedBytes: engine.retained_bytes() },
@@ -62,9 +70,15 @@ const api: EngineApi = {
     }
   },
   openDecoded,
-  render(recipe) {
+  render(recipe, knownOriginalGeometry) {
     const frame = render(recipe);
-    return transfer(frame, [frame.pixels.buffer as ArrayBuffer]);
+    const buffers = [frame.pixels.buffer as ArrayBuffer];
+    if (frame.geometryKey !== knownOriginalGeometry) {
+      if (cachedOriginal?.geometryKey !== frame.geometryKey) cachedOriginal = render({ ...initialRecipe, geometry: recipe.geometry });
+      frame.original = { ...cachedOriginal, pixels: cachedOriginal.pixels.slice() };
+      buffers.push(frame.original.pixels.buffer as ArrayBuffer);
+    }
+    return transfer(frame, buffers);
   },
   async exportPng(recipe) {
     const started = performance.now();

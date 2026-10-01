@@ -9,6 +9,8 @@ import { EditHistory } from '../editor/history';
 import { AdjustmentSlider } from '../components/AdjustmentSlider';
 import { CurveEditor } from '../components/CurveEditor';
 import { HslEditor } from '../components/HslEditor';
+import { CropDialog } from '../components/CropDialog';
+import { defaultGeometry, displayCrop, fullCrop, geometryKey, snapCrop, sourceCrop, type Crop } from '../editor/geometry';
 import { emptyBand } from '../editor/hsl';
 import { PresetLibrary } from '../components/PresetLibrary';
 import { applyPresetPatch, createPreset, MAX_XMP_BYTES, type SavedPreset } from '../presets/xmp';
@@ -30,8 +32,10 @@ export function App() {
   const history = useRef(new EditHistory(initialRecipe, recipeKey));
   const [, updateHistory] = useState(0);
   const [originalFrame, setOriginalFrame] = useState<Frame>();
+  const originalGeometry = useRef('');
+  const [cropSession, setCropSession] = useState<{ frame: Frame; initial: Crop; rotation: number }>();
   const [comparison, setComparison] = useState(50);
-  const [busy, setBusy] = useState<'opening' | 'exporting' | 'preset' | null>(null);
+  const [busy, setBusy] = useState<'opening' | 'exporting' | 'preset' | 'crop' | null>(null);
   const [presets, setPresets] = useState<SavedPreset[]>([]);
   const [presetReport, setPresetReport] = useState<SavedPreset>();
   const [storageNotice, setStorageNotice] = useState('');
@@ -52,8 +56,8 @@ export function App() {
     const worker = new Worker(new URL('../worker/engine.worker.ts', import.meta.url), { type: 'module' });
     api.current = wrap<EngineApi>(worker);
     scheduler.current = new LatestRenderer(
-      (next) => api.current!.render(next),
-      (result) => { setFrame(result); setMetrics(result.metrics); setRendering(false); },
+      (next) => api.current!.render(next, originalGeometry.current),
+      (result) => { if (result.original) { setOriginalFrame(result.original); originalGeometry.current = result.geometryKey; } setFrame(result); setMetrics(result.metrics); setRendering(false); },
       (failure) => { setError(errorMessage(failure)); setRendering(false); },
     );
     worker.addEventListener('error', () => {
@@ -147,6 +151,7 @@ export function App() {
       setPhoto({ ...loaded.info, name: file.name });
       setFrame(loaded.frame);
       setOriginalFrame(loaded.frame);
+      originalGeometry.current = loaded.frame.geometryKey;
       setMetrics(loaded.frame.metrics);
       history.current.reset(initialRecipe);
       setLastExportedKey(undefined);
@@ -210,6 +215,36 @@ export function App() {
     return () => window.removeEventListener('keydown', shortcut);
   }, [photo, ready]);
 
+  async function openCrop() {
+    if (!api.current || !photo || busyRef.current || !ready) return;
+    commitGesture();
+    scheduler.current?.invalidate();
+    busyRef.current = true; setBusy('crop'); setError(''); setRendering(false);
+    try {
+      const current = history.current.current;
+      const fullGeometry = { crop: fullCrop(), rotation: current.geometry.rotation };
+      const cropFrame = await api.current.render({ ...current, geometry: fullGeometry }, geometryKey(fullGeometry));
+      setCropSession({ frame: cropFrame, initial: displayCrop(current.geometry.crop, current.geometry.rotation), rotation: current.geometry.rotation });
+    } catch (failure) {
+      busyRef.current = false; setError(errorMessage(failure)); presentRecipe();
+    } finally { setBusy(null); }
+  }
+
+  function closeCrop(selection?: Crop) {
+    if (!cropSession || !photo) return;
+    const session = cropSession;
+    setCropSession(undefined); busyRef.current = false;
+    if (selection) {
+      const crop = snapCrop(sourceCrop(selection, session.rotation), photo.width, photo.height);
+      applyRecipe({ ...history.current.current, geometry: { crop, rotation: session.rotation } });
+    } else presentRecipe();
+  }
+
+  function rotate(direction: number) {
+    const current = history.current.current;
+    applyRecipe({ ...current, geometry: { ...current.geometry, rotation: (current.geometry.rotation + direction + 4) % 4 } });
+  }
+
   async function exportPhoto() {
     if (!api.current || !photo || busyRef.current) return;
     const exportedKey = recipeKey(recipe);
@@ -241,8 +276,8 @@ export function App() {
     }
   }
 
-  const disabled = !photo || !!busy || !ready;
-  const status = busy === 'opening' ? 'Opening your photo…' : busy === 'exporting' ? 'Preparing your full-size PNG…' : busy === 'preset' ? 'Reading your preset…' : rendering ? 'Updating preview…' : notice;
+  const disabled = !photo || !!busy || !ready || !!cropSession;
+  const status = busy === 'opening' ? 'Opening your photo…' : busy === 'exporting' ? 'Preparing your full-size PNG…' : busy === 'preset' ? 'Reading your preset…' : busy === 'crop' ? 'Preparing crop preview…' : rendering ? 'Updating preview…' : notice;
 
   return (
     <div class="app-shell"
@@ -296,7 +331,7 @@ export function App() {
           </div>
 
           <div class="stage-footer">
-            <div class="photo-caption">{photo ? <><span class="photo-name" title={photo.name}>{photo.name}</span><span class="dimensions">{photo.width.toLocaleString()} × {photo.height.toLocaleString()}</span></> : <span>Open. Adjust. Make it yours.</span>}</div>
+            <div class="photo-caption">{photo ? <><span class="photo-name" title={photo.name}>{photo.name}</span><span class="dimensions">{(frame?.outputWidth ?? photo.width).toLocaleString()} × {(frame?.outputHeight ?? photo.height).toLocaleString()}</span></> : <span>Open. Adjust. Make it yours.</span>}</div>
             {photo && <div class="comparison-actions"><button class="button button-small button-quiet" disabled={disabled || comparison === 50} onClick={() => setComparison(50)}>Split view</button><button class={`button button-small ${comparison === 100 ? 'button-selected' : 'button-quiet'}`} disabled={disabled} aria-pressed={comparison === 100} onClick={() => setComparison(comparison === 100 ? 0 : 100)}>Show original</button></div>}
           </div>
         </section>
@@ -309,6 +344,12 @@ export function App() {
             <button class="button button-small button-quiet" disabled={disabled || !history.current.canUndo} onClick={() => navigateHistory('undo')} title="Undo (⌘/Ctrl Z)">Undo</button>
             <button class="button button-small button-quiet" disabled={disabled || !history.current.canRedo} onClick={() => navigateHistory('redo')} title="Redo (⌘/Ctrl Shift Z)">Redo</button>
             <button class="text-button" disabled={disabled || recipeKey(recipe) === recipeKey(initialRecipe)} onClick={() => applyRecipe(initialRecipe)}><Icon name="reset" size={13} />Reset</button>
+          </div>
+          <div class="frame-controls">
+            <button class="button button-small button-quiet" disabled={disabled} onClick={() => void openCrop()}>Crop</button>
+            <button class="button button-small button-quiet" disabled={disabled} aria-label="Rotate left" title="Rotate left 90°" onClick={() => rotate(-1)}>↶</button>
+            <button class="button button-small button-quiet" disabled={disabled} aria-label="Rotate right" title="Rotate right 90°" onClick={() => rotate(1)}>↷</button>
+            <button class="text-button" disabled={disabled || geometryKey(recipe.geometry) === geometryKey(defaultGeometry())} onClick={() => applyRecipe({ ...history.current.current, geometry: defaultGeometry() })}>Reset framing</button>
           </div>
           <div class={`adjustment-section ${!photo ? 'inactive' : ''}`}>
             <div class="section-heading"><h3>Light</h3></div>
@@ -331,6 +372,7 @@ export function App() {
       </main>
 
       <footer class="app-footer"><span>Made for a moment of focus.</span><span role="status" aria-live="polite" class="operation-status">{status || 'Your photos stay on your device.'}</span></footer>
+      {cropSession && <CropDialog frame={cropSession.frame} initial={cropSession.initial} onApply={selection => closeCrop(selection)} onCancel={() => closeCrop()} />}
       {dragging && <div class="drop-overlay"><div><Icon name="image" size={38} /><h2>Drop a photo or preset</h2><p>JPEG, PNG, WebP, or XMP · one at a time</p></div></div>}
     </div>
   );

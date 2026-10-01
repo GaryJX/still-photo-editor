@@ -64,4 +64,7 @@
 [data-theme="dark"] .preset-list li { border-color: #414d3a; }
 [data-theme="dark"] .preset-name { color: #d2e3c4; }
 [data-theme="dark"] .preset-menu button, [data-theme="dark"] .preset-rename input { color: #d2e3c4; background: #293226; border-color: #414d3a; }
+[data-theme="dark"] .crop-dialog { color: #e6ebe2; background: #1d231e; }
+[data-theme="dark"] .crop-options select, [data-theme="dark"] .crop-fine input { color: #d2e3c4; background: #293226; border-color: #414d3a; }
+[data-theme="dark"] .crop-fine, [data-theme="dark"] .dialog-footer > span { color: #aab7a2; }
 @media (max-width: 370px) { .topbar { gap: 8px; } .header-actions { gap: 5px; } .header-actions .button { padding: 8px; font-size: 10px; } .header-actions .theme-toggle { width: 32px; } }
