@@ -210,6 +210,7 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 - **Measured baseline:** Apple M4 Max, 64 GiB RAM, macOS 15.8.1, Playwright WebKit 26.6. Generated 12/24 MP images had 2–4 ms preview engine times and roughly 199/399 ms full-size PNG exports. See `docs/performance.md` for raw measurements, memory accounting, and limits.
 - **Environment limitation:** Chromium launch was denied a required macOS Mach-port operation; Firefox also failed to launch. No launch restrictions were changed. Their browser checks remain pending, and real-device testing has not been performed.
 - **Publishing preparation:** added MIT licensing, pinned Node/Rust toolchains, an Actions Pages workflow, project-path support, and deployment instructions. Target repository: `GaryJX/wasm-image-editor`; target URL: `https://garyjx.github.io/wasm-image-editor/`. Deployment outcome will be recorded after verification.
+- **Deployment portability fix:** the initial lockfile inherited the development environment's internal npm mirror. Replaced only public-package download URLs with canonical npm registry URLs, preserving every version and integrity hash. Canceled the first deployment, which was waiting on dependency installation, and pushed the correction.
 
 ## Reference implementation
 
