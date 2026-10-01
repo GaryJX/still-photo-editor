@@ -1,13 +1,13 @@
 {
-  "name": "wasm-image-editor",
+  "name": "still-photo-editor",
   "version": "1.1.0",
   "private": true,
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/GaryJX/wasm-image-editor.git"
+    "url": "https://github.com/GaryJX/still-photo-editor.git"
   },
-  "homepage": "https://garyjx.github.io/wasm-image-editor/",
+  "homepage": "https://garyjx.github.io/still-photo-editor/",
   "type": "module",
   "scripts": {
     "wasm:build": "wasm-pack build crates/image-engine --target web --release",

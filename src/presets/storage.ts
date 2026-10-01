@@ -3,6 +3,7 @@ import type { LutAsset } from '../editor/cube';
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
+    // Keep the original database name so existing presets/LUTs survive a site-path rename.
     const request = indexedDB.open('wasm-image-editor', 2);
     let abandoned = false;
     request.onupgradeneeded = () => {

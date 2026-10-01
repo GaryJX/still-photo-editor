@@ -1,12 +1,14 @@
-# WASM Image Editor
+# Still Photo Editor
 
-A browser-based photo editor with a Rust/WebAssembly processing engine, a minimal interface, and compatible XMP presets. Images and presets are processed on the user's device.
+A lightweight photo editor built directly into your browser.
 
-[Open the editor](https://garyjx.github.io/wasm-image-editor/) · [Implementation plan](PLAN.md) · [MIT license](LICENSE)
+Still combines a Rust/WebAssembly processing engine, a minimal interface, and compatible XMP presets. Images and presets are processed on your device.
+
+[Open the editor](https://garyjx.github.io/still-photo-editor/) · [Implementation plan](PLAN.md) · [MIT license](LICENSE)
 
 ## Project status
 
-The editor, branded **Still**, now includes a draggable comparison divider, global light/color adjustments, master/RGB tone curves, undo/redo, light/dark themes, XMP import and a saved preset library, and full-resolution PNG export. The local Git repository uses `main`.
+Still includes a hover-revealed comparison divider, zoom and pan, global light/color adjustments, master/RGB tone curves, crop/rotation, undo/redo, light/dark themes, XMP import/export, a saved preset library, local LUTs, and full-resolution image export. The local Git repository uses `main`.
 
 [PLAN.md](PLAN.md) is the implementation roadmap, acceptance checklist, and decision log. Update it as work progresses.
 
@@ -93,7 +95,9 @@ See [docs/processing.md](docs/processing.md) for the processing contract and [do
 
 ## Publish to GitHub Pages
 
-The repository is [GaryJX/wasm-image-editor](https://github.com/GaryJX/wasm-image-editor). The site URL is **https://garyjx.github.io/wasm-image-editor/**.
+The repository is [GaryJX/still-photo-editor](https://github.com/GaryJX/still-photo-editor). The site URL is **https://garyjx.github.io/still-photo-editor/**.
+
+The repository was renamed from `wasm-image-editor`. Update bookmarks to the new Pages URL and reopen the local project at `~/git/garyjx/still-photo-editor`. GitHub redirects old repository links, but the old Pages URL is not a permanent redirect. Saved browser presets and LUTs remain available on the same browser/origin; existing XMP files remain compatible.
 
 The [Pages workflow](.github/workflows/pages.yml) tests the engine and scheduler, builds Rust/WASM and the interface, and runs Chromium, Firefox, and WebKit workflows (including accessibility checks) before deploying the generated `dist/` artifact. Build output stays out of Git. The workflow reads the Pages base path so JavaScript, WASM, icons, and navigation work under the project URL.
 
@@ -117,11 +121,11 @@ Each push to `main` runs the workflow automatically. It can also be started from
 To check the project URL locally before pushing:
 
 ```sh
-APP_BASE_PATH=/wasm-image-editor/ npm run build
-APP_BASE_PATH=/wasm-image-editor/ npm run test:e2e -- --project=webkit
+APP_BASE_PATH=/still-photo-editor/ npm run build
+APP_BASE_PATH=/still-photo-editor/ npm run test:e2e -- --project=webkit
 ```
 
-This validates the production bundle under `/wasm-image-editor/`, including the worker and WASM asset paths.
+This validates the production bundle under `/still-photo-editor/`, including the worker and WASM asset paths.
 
 ## License
 

@@ -18,7 +18,7 @@ The release workflow builds the Rust/WASM engine and TypeScript application, run
 
 Local visual review covers desktop and narrow mobile viewports, including crop and export dialogs. WebKit automation and emulated viewports are not equivalent to real Safari/iOS/Android device testing. No real mobile-device coverage is claimed.
 
-The first Linux browser-matrix run passed 98 of 99 checks and exposed a numeric-draft race in Chromium. That behavior was corrected and a regression test added. The updated matrix passed in [run 36823491967](https://github.com/GaryJX/wasm-image-editor/actions/runs/36823491967), including stability checks and WebP export in all three Linux engines.
+The first Linux browser-matrix run passed 98 of 99 checks and exposed a numeric-draft race in Chromium. That behavior was corrected and a regression test added. The updated matrix passed in [run 36823491967](https://github.com/GaryJX/still-photo-editor/actions/runs/36823491967), including stability checks and WebP export in all three Linux engines.
 
 ## Limits kept explicit
 
@@ -34,6 +34,6 @@ See [processing.md](processing.md), [xmp-support.md](xmp-support.md), and [perfo
 
 ## Version 1.0 result
 
-[Run 36828323891](https://github.com/GaryJX/wasm-image-editor/actions/runs/36828323891) passed 19 Rust tests, 13 frontend tests, and 138 browser checks across Chromium, Firefox, and WebKit, and deployed the release. The live Pages site was then exercised with a local image, a cube LUT, an XMP save/re-import round-trip, PNG export, and leave-page state checks. No failed assets or page errors occurred in that live verification.
+[Run 36828323891](https://github.com/GaryJX/still-photo-editor/actions/runs/36828323891) passed 19 Rust tests, 13 frontend tests, and 138 browser checks across Chromium, Firefox, and WebKit, and deployed the release. The live Pages site was then exercised with a local image, a cube LUT, an XMP save/re-import round-trip, PNG export, and leave-page state checks. No failed assets or page errors occurred in that live verification.
 
 The final Look/LUT tests include storage migration, fixed/zero amounts, missing/matching files, worker recovery, precision metadata, and accessibility. Unsupported Adobe formats remain a documented compatibility boundary, not an unverified claim of support.

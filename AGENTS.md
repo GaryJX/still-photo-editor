@@ -1,4 +1,4 @@
-# Working on WASM Image Editor
+# Working on Still Photo Editor
 
 - Read `PLAN.md` before implementation. Follow its milestone order unless new evidence warrants a documented change.
 - Update its status, acceptance checkboxes, decisions, and next action after each meaningful implementation milestone. Mark a criterion complete only when verified.

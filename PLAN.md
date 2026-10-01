@@ -1,4 +1,4 @@
-# WASM Image Editor: implementation plan
+# Still Photo Editor: implementation plan
 
 ## Objective
 
@@ -6,7 +6,7 @@ Build a useful photo editor that runs entirely in the browser, uses Rust/WebAsse
 
 **Status:** Milestones 0–7 are complete for the documented supported formats. Version 1.0.0 is deployed and live-verified. Unsupported Adobe camera/profile-table formats and real-device testing limits are explicitly documented.
 
-**Next action:** Complete the requested hover comparison and zoom/pan follow-up; keep preset application semantics unchanged (the user asked for discussion only).
+**Next action:** Finish the zoom/pan browser release gate, rename the local/GitHub repository to `still-photo-editor`, and verify Pages at its new URL. Preset application semantics remain unchanged (the user asked for discussion only).
 
 ## Product boundaries
 
@@ -245,11 +245,13 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 
 ## Implementation log
 
+- **2026-10-01 — Repository rename requested:** adopting the user's tagline, “A lightweight photo editor built directly into your browser.” Updating documentation, package/Rust metadata, and the Pages path for `GaryJX/still-photo-editor` and local `~/git/garyjx/still-photo-editor`. Keep the existing IndexedDB name and XMP namespace: browser storage shares the same origin, and previously exported presets must remain compatible. Cancel the superseded deployment built for the old path, then run the full release gate for the renamed repository. GitHub and local renames are complete, `origin` points to the renamed repository, and Pages reports the new URL. The new-path production build, 15 frontend tests, and all 49 available WebKit workflows pass (one unsupported WebP encoder skip). Push and cross-browser/live verification are next.
+
 - **2026-10-01 — Zoom/pan implemented:** added Fit–400% zoom, a native 100% shortcut, anchored wheel zoom, bounded mouse/touch pan, two-pointer pinch, and keyboard controls. Comparison stays aligned and uses its own 44 px drag target when zoomed. Original-source detail regions are capped at 2048² per side, rendered in Rust with the existing color pipeline, and protected against stale responses. Native crop/rotation detail matches full exports pixel for pixel; view changes do not affect undo or unsaved state. New photos/framing reset to Fit. Twenty-one Rust tests, 15 frontend tests, focused zoom/comparison/geometry checks, accessibility, and recovery pass locally. Full WebKit coverage found an ambiguous status test selector, now scoped to the operation status. Reviewed light/dark desktop and 320 px layouts; corrected narrow-footer overlap. One generated 24 MP photo's 864×576 native region appeared in 176 ms including debounce and automation overhead; this is a spot check, not a benchmark. The final build and all nine targeted correction checks pass; 49 WebKit workflows passed across the suite and focused correction run, with one unavailable WebP encoder skip. Cross-browser CI and live verification are next.
 
 - **2026-10-01 — Quiet comparison:** divider, handle, and labels now appear on image hover or keyboard focus, with persistent touch-device affordances. Explicit keyboard modality avoids a WebKit programmatic-focus issue keeping the line visible after mouse use. Production build and all three focused WebKit comparison checks pass. Zoom/pan is next.
 
-- **2026-10-01 — Roadmap completed and released:** [CI run 36828323891](https://github.com/GaryJX/wasm-image-editor/actions/runs/36828323891) passed 19 Rust tests, 13 frontend tests, and all 138 Chromium/Firefox/WebKit checks, then deployed version 1.0.0 (`b9b5f3c`). Live-site verification confirmed asset loading, WASM LUT rendering, XMP export/import with dependencies, PNG export, and correct unsaved-edit state. All requested milestones are delivered within the supported-format boundaries; missing/proprietary Adobe data is reported rather than guessed.
+- **2026-10-01 — Roadmap completed and released:** [CI run 36828323891](https://github.com/GaryJX/still-photo-editor/actions/runs/36828323891) passed 19 Rust tests, 13 frontend tests, and all 138 Chromium/Firefox/WebKit checks, then deployed version 1.0.0 (`b9b5f3c`). Live-site verification confirmed asset loading, WASM LUT rendering, XMP export/import with dependencies, PNG export, and correct unsaved-edit state. All requested milestones are delivered within the supported-format boundaries; missing/proprietary Adobe data is reported rather than guessed.
 
 - **2026-10-01 — Final local release checks:** version 1.0.0 built successfully; 19 Rust tests, 13 frontend tests, and 44 WebKit workflows passed, with one conditional WebP encoder skip. Look tests include amount behavior, XMP precision/reference round-trips, legacy storage migration, missing/matching LUT files, recovery, and accessibility. A final 17-grid LUT preview measured 56 ms. The final cross-browser matrix and live-site verification are next.
 
@@ -257,7 +259,7 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 
 - **2026-09-30 — XMP preset export:** added Save as preset with group selection, browser saving, and XMP download. Shared mapping/validation excludes photo-specific data. Standard fields use the Camera Raw integer/real schema; a validated, whitelisted precision extension keeps exact Still values without invalid native curve coordinates. Unit and browser tests cover invalid values, escaped names, partial exports, pixel round-trips, geometry exclusion, and invalid precision fallback. External Adobe application validation was unavailable and is documented. Core release validation completed before this milestone, as requested.
 
-- **2026-09-30 — Core roadmap release validated:** CI run [36823491967](https://github.com/GaryJX/wasm-image-editor/actions/runs/36823491967) passed and deployed the numeric-draft correction. Chromium, Firefox, and Linux WebKit passed the full matrix, including WebP, accessibility, recovery, memory stability, and 12/24 MP workflows. Local native tests and viewport reviews are recorded separately from real-device testing, which was not performed. Milestones 0–5 are complete within the documented SDR/browser constraints. Proceeding to XMP export, followed by `Look` support.
+- **2026-09-30 — Core roadmap release validated:** CI run [36823491967](https://github.com/GaryJX/still-photo-editor/actions/runs/36823491967) passed and deployed the numeric-draft correction. Chromium, Firefox, and Linux WebKit passed the full matrix, including WebP, accessibility, recovery, memory stability, and 12/24 MP workflows. Local native tests and viewport reviews are recorded separately from real-device testing, which was not performed. Milestones 0–5 are complete within the documented SDR/browser constraints. Proceeding to XMP export, followed by `Look` support.
 
 - **2026-09-30 — Cross-browser finding corrected:** the first Linux CI run passed 98/99 checks, including WebP export in Chromium, Firefox, and Linux WebKit. Chromium exposed an in-progress numeric value being overwritten by an unrelated render. Shared numeric inputs now preserve their draft until blur/Enter, with a regression test. Added repeated 12 MP imports and 100-event slider bursts; WASM capacity plateaus locally. The updated local suite passed 33 checks with one unavailable WebP encoder skip; CI is being rerun. Mobile crop/export layouts were visually reviewed.
 
@@ -290,7 +292,7 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 - **Environment limitation:** Chromium launch was denied a required macOS Mach-port operation; Firefox also failed to launch. No launch restrictions were changed. Their browser checks remain pending, and real-device testing has not been performed.
 - **Publishing preparation:** added MIT licensing, pinned Node/Rust toolchains, an Actions Pages workflow, project-path support, and deployment instructions. Repository: `GaryJX/wasm-image-editor`; site: `https://garyjx.github.io/wasm-image-editor/`.
 - **Deployment portability fix:** the initial lockfile inherited the development environment's internal npm mirror. Replaced only public-package download URLs with canonical npm registry URLs, preserving every version and integrity hash. Canceled the first deployment, which was waiting on dependency installation, and pushed the correction.
-- **Published and verified:** GitHub Actions run [36815763041](https://github.com/GaryJX/wasm-image-editor/actions/runs/36815763041) built and deployed commit `5283798` successfully. Verified the live site in WebKit: correct project-relative navigation, no failed assets or page errors, local photo import, the expected +1 EV pixel transform, and PNG download. The five functional WebKit workflows also passed against a local production build under `/wasm-image-editor/`. Future pushes to `main` deploy automatically.
+- **Published and verified:** GitHub Actions run [36815763041](https://github.com/GaryJX/still-photo-editor/actions/runs/36815763041) built and deployed commit `5283798` successfully. Verified the live site in WebKit: correct project-relative navigation, no failed assets or page errors, local photo import, the expected +1 EV pixel transform, and PNG download. The five functional WebKit workflows also passed against a local production build under `/wasm-image-editor/`. Future pushes to `main` deploy automatically.
 
 ## Reference implementation
 

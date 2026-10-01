@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 description = "Browser-local photo processing for WASM Image Editor"
 license = "MIT"
-repository = "https://github.com/GaryJX/wasm-image-editor"
+repository = "https://github.com/GaryJX/still-photo-editor"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

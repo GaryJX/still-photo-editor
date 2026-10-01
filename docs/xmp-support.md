@@ -41,3 +41,5 @@ Field types were checked against the [Exiv2 Camera Raw schema definitions](https
 ## Validation
 
 Browser fixtures cover attribute/element forms, alternate namespace prefixes, curve arrays, nested mask descriptions, unknown process versions, malformed XML/curves, invalid numbers, partial application, repeated application, undo, import before an image, duplicate files, reload persistence, renaming/deletion, exact original-file download, and session-only operation. External Lightroom/Camera Raw rendering equivalence has not been claimed or tested.
+
+The Still XML namespace is a stable format identifier, not a URL fetched by the app. It retains the original project name after the repository rename so previously exported XMP files keep working.

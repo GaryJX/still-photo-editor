@@ -6,6 +6,7 @@ import { cleanLook, type Look } from '../editor/look';
 export const CRS = 'http://ns.adobe.com/camera-raw-settings/1.0/';
 export const RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
 export type PresetPatch = Partial<Record<Adjustment, number>> & { curves?: Partial<Curves>; hsl?: HslPatch; look?: Look };
+// Stable format identifier: retain it across repository/website renames.
 export const STILL = 'https://garyjx.github.io/wasm-image-editor/xmp/1.0/';
 
 export const scalarFields: Record<string, [Adjustment, string]> = {
