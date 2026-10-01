@@ -16,6 +16,11 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByLabel('Choose a photo', { exact: true }).setInputFiles({ name: 'accessible.png', mimeType: 'image/png', buffer: makePng(400, 300) });
     await expect(page.locator('[data-preview]')).toHaveAttribute('width', '400');
     await check('loaded');
+    await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+    await expect(page.locator('[data-detail="edited"]')).toBeAttached();
+    await page.getByRole('slider', { name: 'Before and after comparison' }).focus();
+    await check('zoomed');
+    await page.getByRole('button', { name: 'Fit', exact: true }).click();
     await page.getByLabel('Choose a LUT file', { exact: true }).setInputFiles({ name: 'identity.cube', mimeType: 'text/plain', buffer: Buffer.from('TITLE "Identity"\nLUT_1D_SIZE 2\n0 0 0\n1 1 1\n') });
     await expect.poll(async () => JSON.parse((await page.locator('[data-preview]').getAttribute('data-recipe'))!).look?.kind).toBe('lut');
     await page.locator('.look-section summary').click();

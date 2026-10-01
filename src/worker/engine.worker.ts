@@ -1,7 +1,7 @@
 import { expose, transfer } from 'comlink';
 import init, { ImageEngine } from '../../crates/image-engine/pkg/image_engine';
 import { imageInfo } from '../editor/image';
-import type { DecodedPhoto, EngineApi, Frame, LoadedPhoto, PhotoInfo } from './types';
+import type { DecodedPhoto, DetailRegion, EngineApi, Frame, LoadedPhoto, PhotoInfo } from './types';
 import { ENGINE_VERSION, initialRecipe, recipeKey, recipeValues, type Recipe } from '../editor/recipe';
 import { curveValues } from '../editor/curves';
 import { cleanLook } from '../editor/look';
@@ -30,7 +30,7 @@ async function openDecoded(photo: DecodedPhoto): Promise<LoadedPhoto> {
   return transfer({ info, frame }, [frame.pixels.buffer as ArrayBuffer]);
 }
 
-function render(recipe: Recipe, fullResolution = false): Frame {
+function render(recipe: Recipe, fullResolution = false, region?: DetailRegion): Frame {
   if (!engine || !info) throw new Error('Open a photo first.');
   if (recipe.schemaVersion !== 1 || recipe.engineVersion !== ENGINE_VERSION) throw new Error('This edit recipe is not supported.');
   const started = performance.now();
@@ -43,12 +43,18 @@ function render(recipe: Recipe, fullResolution = false): Frame {
     engine.set_lut(lut.kind, lut.size, lut.domain, lut.data);
     activeLutId = look.assetId;
   }
+  let layoutValues = layout.values;
+  if (region) {
+    const values = [region.x, region.y, region.width, region.height, region.outputWidth, region.outputHeight];
+    if (values.some(value => !Number.isSafeInteger(value) || value < 0 || value > 16_384)) throw new Error('Invalid detail region.');
+    layoutValues = new Uint32Array([...layout.values, ...values]);
+  }
   const lookCurves = look?.kind === 'curves' ? curveValues(look.curves) : new Float32Array();
-  const pixels = engine.render(recipeValues(recipe), curveValues(recipe.curves), hslValues(recipe.hsl), lookCurves, look?.amount ?? 0, look?.kind === 'lut', layout.values, fullResolution);
+  const pixels = engine.render(recipeValues(recipe), curveValues(recipe.curves), hslValues(recipe.hsl), lookCurves, look?.amount ?? 0, look?.kind === 'lut', layoutValues, fullResolution);
   return {
     pixels,
-    width: layout.width,
-    height: layout.height,
+    width: region?.outputWidth ?? layout.width,
+    height: region?.outputHeight ?? layout.height,
     outputWidth: output.width,
     outputHeight: output.height,
     geometryKey: geometryKey(recipe.geometry),
@@ -106,6 +112,11 @@ const api: EngineApi = {
       buffers.push(frame.original.pixels.buffer as ArrayBuffer);
     }
     return transfer(frame, buffers);
+  },
+  renderDetail(recipe, region) {
+    const edited = render(recipe, true, region);
+    const original = render({ ...initialRecipe, geometry: recipe.geometry }, true, region);
+    return transfer({ edited, original, region }, [edited.pixels.buffer as ArrayBuffer, original.pixels.buffer as ArrayBuffer]);
   },
   async exportImage(recipe, options) {
     validateExport(options);

@@ -6,12 +6,14 @@ The release workflow builds the Rust/WASM engine and TypeScript application, run
 
 - Local JPEG/PNG/WebP import, EXIF orientation, malformed-file recovery, and transparent pixels.
 - Light/color controls, HSL bands, master/RGB curves, numeric drafts, pointer/keyboard input, resets, and grouped undo/redo.
-- Original/edited comparison, touch interaction, full-image endpoints, and matching crop/rotation.
+- Original/edited comparison, hover/keyboard visibility, touch interaction, full-image endpoints, and matching crop/rotation.
+- Bounded zoom/pan, anchored wheel zoom, native detail/export pixel agreement, photo/geometry reset, and retained zoom after worker recovery.
+- Two-pointer pinch event handling with synthetic events; actual touch taps and emulated narrow layouts. Physical touchscreen/trackpad testing is still outstanding.
 - PNG/JPEG export, JPEG matte colors, WebP when the browser exposes its encoder, output dimensions, and preview/export pixel agreement.
 - XMP attributes/elements, namespace aliases, curves/HSL, partial settings, unsupported dependencies, malformed XML, and invalid numbers.
 - Preset persistence, duplicate detection, renaming, deletion, exact original-file backups, and unavailable-storage behavior.
 - Native leave-page protection, exports/defaults/undo baselines, worker recovery, and responsive controls.
-- Automated WCAG A/AA checks for light/dark empty and loaded views plus crop/export dialogs.
+- Automated WCAG A/AA checks for light/dark empty and loaded views plus zoomed views and crop/export dialogs.
 - Repeated large imports, 100-event slider bursts, and 12/24 MP performance measurements.
 
 Local visual review covers desktop and narrow mobile viewports, including crop and export dialogs. WebKit automation and emulated viewports are not equivalent to real Safari/iOS/Android device testing. No real mobile-device coverage is claimed.

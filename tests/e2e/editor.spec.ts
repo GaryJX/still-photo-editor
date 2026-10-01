@@ -98,7 +98,7 @@ test('rapid slider changes present the latest exposure', async ({ page }) => {
     }
   });
   await expect(page.locator('canvas[data-preview]')).toHaveAttribute('data-exposure', '0');
-  await expect(page.getByRole('status')).not.toContainText('Updating');
+  await expect(page.locator('.operation-status')).not.toContainText('Updating');
   await expect(page.getByRole('spinbutton', { name: 'Exposure value' })).toHaveValue('0');
 });
 

@@ -38,6 +38,10 @@ Use **Save as preset** to keep the current look in this browser, download it as 
 
 The comparison divider and labels appear while hovering over the photo or using the keyboard. Touch-only devices keep them visible so the control stays discoverable. Moving away hides the controls while keeping your chosen split.
 
+Use **+ / −**, the mouse wheel over the photo, or a two-finger touch pinch to zoom. **100%** shows one source pixel per CSS screen pixel; **Fit** returns to the whole photo. When zoomed, drag the photo to pan and drag the divider to compare. Keyboard users can focus the zoomed image and use arrow keys to pan, +/− to zoom, and 0 to fit. Zoom ranges from Fit to 400%; a new photo, crop, or rotation resets the view. Scroll outside the image to move the page; Ctrl/Cmd-wheel keeps browser zoom.
+
+Zoomed detail comes from the original pixels. View changes never alter the recipe, history, XMP presets, export dimensions, or leave-page protection.
+
 ## Planned experience
 
 1. Drop in a photo.

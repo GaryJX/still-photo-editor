@@ -1,5 +1,5 @@
 import { wrap, type Remote } from 'comlink';
-import type { EngineApi, DecodedPhoto, LoadedPhoto } from '../worker/types';
+import type { EngineApi, DecodedPhoto, LoadedPhoto, DetailRegion } from '../worker/types';
 import type { Recipe } from './recipe';
 import type { ExportOptions } from './encoding';
 import type { LutAsset } from './cube';
@@ -36,5 +36,6 @@ export class EngineClient {
   open(file: File) { return this.run<LoadedPhoto | 'decode-on-main'>(api => api.open(file)); }
   openDecoded(photo: DecodedPhoto) { return this.run(api => api.openDecoded(photo)); }
   render(recipe: Recipe, knownOriginalGeometry?: string) { return this.run(api => api.render(recipe, knownOriginalGeometry)); }
+  renderDetail(recipe: Recipe, region: DetailRegion) { return this.run(api => api.renderDetail(recipe, region)); }
   exportImage(recipe: Recipe, options: ExportOptions) { return this.run(api => api.exportImage(recipe, options)); }
 }

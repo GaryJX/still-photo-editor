@@ -33,6 +33,12 @@ export interface Frame {
   metrics: RenderMetrics;
 }
 
+export interface DetailRegion {
+  x: number; y: number; width: number; height: number;
+  outputWidth: number; outputHeight: number;
+}
+export interface DetailFrame { edited: Frame; original: Frame; region: DetailRegion }
+
 export interface LoadedPhoto { info: PhotoInfo; frame: Frame }
 export interface ExportedPhoto {
   blob?: Blob;
@@ -48,5 +54,6 @@ export interface EngineApi {
   open(file: File): Promise<LoadedPhoto | 'decode-on-main'>;
   openDecoded(photo: DecodedPhoto): Promise<LoadedPhoto>;
   render(recipe: Recipe, knownOriginalGeometry?: string): Frame;
+  renderDetail(recipe: Recipe, region: DetailRegion): DetailFrame;
   exportImage(recipe: Recipe, options: ExportOptions): Promise<ExportedPhoto>;
 }

@@ -210,9 +210,9 @@ Requested by the user after encountering unsupported `Look` settings in real pre
 ### 8. Inspect the image — in progress
 
 - [x] Hide comparison chrome away from the image; reveal on hover, keyboard focus, and touch-only devices.
-- [ ] Add zoom, 100%, Fit, and bounded pan with aligned original/edited views.
-- [ ] Render bounded detail regions from the original pixels in the worker, with stale-result protection.
-- [ ] Verify view changes leave edits, history, exports, and leave warnings unchanged; reset the view for a new photo or geometry.
+- [x] Add zoom, 100%, Fit, and bounded pan with aligned original/edited views.
+- [x] Render bounded detail regions from the original pixels in the worker, with stale-result protection.
+- [x] Verify view changes leave edits, history, exports, and leave warnings unchanged; reset the view for a new photo or geometry.
 - [ ] Verify mouse, keyboard, touch, responsive layout, and cross-browser deployment.
 
 ## Performance targets and verification
@@ -244,6 +244,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-10-01 — Zoom/pan implemented:** added Fit–400% zoom, a native 100% shortcut, anchored wheel zoom, bounded mouse/touch pan, two-pointer pinch, and keyboard controls. Comparison stays aligned and uses its own 44 px drag target when zoomed. Original-source detail regions are capped at 2048² per side, rendered in Rust with the existing color pipeline, and protected against stale responses. Native crop/rotation detail matches full exports pixel for pixel; view changes do not affect undo or unsaved state. New photos/framing reset to Fit. Twenty-one Rust tests, 15 frontend tests, focused zoom/comparison/geometry checks, accessibility, and recovery pass locally. Full WebKit coverage found an ambiguous status test selector, now scoped to the operation status. Reviewed light/dark desktop and 320 px layouts; corrected narrow-footer overlap. One generated 24 MP photo's 864×576 native region appeared in 176 ms including debounce and automation overhead; this is a spot check, not a benchmark. The final build and all nine targeted correction checks pass; 49 WebKit workflows passed across the suite and focused correction run, with one unavailable WebP encoder skip. Cross-browser CI and live verification are next.
 
 - **2026-10-01 — Quiet comparison:** divider, handle, and labels now appear on image hover or keyboard focus, with persistent touch-device affordances. Explicit keyboard modality avoids a WebKit programmatic-focus issue keeping the line visible after mouse use. Production build and all three focused WebKit comparison checks pass. Zoom/pan is next.
 

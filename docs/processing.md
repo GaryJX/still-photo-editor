@@ -64,6 +64,14 @@ The crop dialog displays the full image at the current rotation and maps its sel
 
 The worker caches an unedited preview with the same geometry. Preview requests include the geometry the UI has actually displayed; a matching original is returned whenever necessary, including after superseded renders. This keeps the divider aligned without retransmitting the original for every color-only change.
 
+## Zoom and detail
+
+The fit preview still uses the 1600-pixel source preview. Zoom/pan is separate view state: both comparison images share the same transform, while the divider clips them in viewport coordinates. Fit is the minimum zoom; 100% means one source pixel per CSS pixel, and 400% is the maximum. A successful new photo or geometry change resets the view.
+
+After a 100 ms pause in view changes, a separate latest-request scheduler requests the visible output rectangle from the worker. Rust maps that rectangle through the source crop/rotation and samples directly from the immutable full-resolution source, then runs the existing color pipeline. Each original/edited detail buffer is capped at 2048×2048; device-pixel-ratio sampling is capped at 2. No full-resolution intermediate image is needed for detail. At native sampling, pixels match the full export exactly. Below native sampling, alpha-weighted bilinear resampling happens before color processing and can differ from downsampling the final export, as can the ordinary fit preview.
+
+The smaller preview remains available during motion. Detail results are shown only when their recipe and viewport rectangle match the current view. Pending detail work is invalidated during import, recovery, and editing; obsolete results are discarded. Zooming and panning never mutate the edit recipe, history, export, or unsaved-edit baseline. Comparison-only movements do not request a render.
+
 ## Work scheduling and memory
 
 `LatestRenderer` permits one running preview and one pending latest recipe. New requests replace the pending recipe and make older results obsolete. Opening another image invalidates outstanding preview results. A failed replacement import resumes the prior recipe on the prior source.

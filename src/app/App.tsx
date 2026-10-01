@@ -26,7 +26,7 @@ import { useUnsavedEditWarning } from '../editor/unsaved';
 import { LatestRenderer } from '../editor/scheduler';
 import type { Frame, PhotoInfo, RenderMetrics } from '../worker/types';
 
-type Photo = PhotoInfo & { name: string };
+type Photo = PhotoInfo & { name: string; id: number };
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 
 export function App() {
@@ -61,6 +61,7 @@ export function App() {
   const [metrics, setMetrics] = useState<RenderMetrics>();
   const input = useRef<HTMLInputElement>(null);
   const api = useRef<EngineClient | undefined>(undefined);
+  const photoSerial = useRef(0);
   const sourceFile = useRef<File | undefined>(undefined);
   const workerEpoch = useRef(0);
   const [controlsCollapsed, setControlsCollapsed] = useState(false);
@@ -291,7 +292,7 @@ export function App() {
       }
       if (epoch !== workerEpoch.current) return;
       sourceFile.current = file;
-      setPhoto({ ...loaded.info, name: file.name });
+      setPhoto({ ...loaded.info, name: file.name, id: ++photoSerial.current });
       setFrame(loaded.frame);
       setOriginalFrame(loaded.frame);
       originalGeometry.current = loaded.frame.geometryKey;
@@ -469,7 +470,7 @@ export function App() {
           </div>
 
           <div class={`canvas-area ${photo ? 'loaded' : ''}`}>
-            {photo && frame && originalFrame ? <ComparisonPreview frame={frame} original={originalFrame} name={photo.name} metrics={metrics} position={comparison} onPositionChange={setComparison} /> : <div class="empty-state">
+            {photo && frame && originalFrame ? <ComparisonPreview key={`${photo.id}:${frame.geometryKey}`} client={api.current} recipe={recipe} detailEnabled={ready && !busy && !rendering} frame={frame} original={originalFrame} name={photo.name} metrics={metrics} position={comparison} onPositionChange={setComparison} /> : <div class="empty-state">
               <div class="photo-illustration" aria-hidden="true"><div class="illustration-back" /><div class="illustration-front"><div class="illustration-sun" /><div class="illustration-hill hill-back" /><div class="illustration-hill hill-front" /><span class="illustration-spark">✦</span></div></div>
               <span class="eyebrow empty-eyebrow">A fresh point of view</span>
               <h1>Your photo.<br />A little brighter.</h1>
