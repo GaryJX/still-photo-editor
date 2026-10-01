@@ -28,3 +28,10 @@ The first Linux browser-matrix run passed 98 of 99 checks and exposed a numeric-
 - Unsupported XMP fields are reported. External profile or LUT references are never fetched automatically. Supported curve looks and standard cube LUTs are tested; Adobe camera/profile-table dependencies remain explicit compatibility limits. See [look-support.md](look-support.md).
 
 See [processing.md](processing.md), [xmp-support.md](xmp-support.md), and [performance.md](performance.md) for the rendering contract, compatibility matrix, and measurement context.
+
+
+## Version 1.0 result
+
+[Run 36828323891](https://github.com/GaryJX/wasm-image-editor/actions/runs/36828323891) passed 19 Rust tests, 13 frontend tests, and 138 browser checks across Chromium, Firefox, and WebKit, and deployed the release. The live Pages site was then exercised with a local image, a cube LUT, an XMP save/re-import round-trip, PNG export, and leave-page state checks. No failed assets or page errors occurred in that live verification.
+
+The final Look/LUT tests include storage migration, fixed/zero amounts, missing/matching files, worker recovery, precision metadata, and accessibility. Unsupported Adobe formats remain a documented compatibility boundary, not an unverified claim of support.

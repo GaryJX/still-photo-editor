@@ -4,9 +4,9 @@
 
 Build a useful photo editor that runs entirely in the browser, uses Rust/WebAssembly for processing, and makes editing approachable for beginners. A user should be able to open a photo, apply an XMP preset or adjust a few controls, compare the result, and download the edited image.
 
-**Status:** Milestones 0–7 are implemented for the documented supported formats. Version 1.0.0 is entering its final browser release matrix. Unsupported Adobe camera/profile-table formats and real-device testing limits remain explicit.
+**Status:** Milestones 0–7 are complete for the documented supported formats. Version 1.0.0 is deployed and live-verified. Unsupported Adobe camera/profile-table formats and real-device testing limits are explicitly documented.
 
-**Next action:** Run the final full release matrix and live-site checks for the completed Look/LUT milestone. All roadmap features are implemented for their documented supported formats; unavailable Adobe profile formats and real-device testing remain explicit compatibility limits. Then implement XMP export and the feasible `Look`/profile subset. Do not stop after a partial milestone unless a concrete external dependency blocks further progress.
+**Next action:** No required roadmap work remains. Keep the release gates and documented compatibility limits intact when adding future features.
 
 ## Product boundaries
 
@@ -236,6 +236,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-10-01 — Roadmap completed and released:** [CI run 36828323891](https://github.com/GaryJX/wasm-image-editor/actions/runs/36828323891) passed 19 Rust tests, 13 frontend tests, and all 138 Chromium/Firefox/WebKit checks, then deployed version 1.0.0 (`b9b5f3c`). Live-site verification confirmed asset loading, WASM LUT rendering, XMP export/import with dependencies, PNG export, and correct unsaved-edit state. All requested milestones are delivered within the supported-format boundaries; missing/proprietary Adobe data is reported rather than guessed.
 
 - **2026-10-01 — Final local release checks:** version 1.0.0 built successfully; 19 Rust tests, 13 frontend tests, and 44 WebKit workflows passed, with one conditional WebP encoder skip. Look tests include amount behavior, XMP precision/reference round-trips, legacy storage migration, missing/matching LUT files, recovery, and accessibility. A final 17-grid LUT preview measured 56 ms. The final cross-browser matrix and live-site verification are next.
 
