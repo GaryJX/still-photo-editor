@@ -38,3 +38,10 @@ npm run test:e2e -- --project=webkit --grep 'baseline'
 The test prints measurements and attaches a JSON record to the Playwright result. Other configured projects can run the same test when their browser launches are available. Chromium and Firefox did not launch in the development sandbox and are unverified here. No launch restrictions were changed.
 
 Before the first release, add real-photo fixtures with clear licenses, longer interaction runs, sustained image replacement, lower-memory devices, whole-tab memory measurements, and broader color-profile coverage. These results establish the first working path; they do not establish a mobile performance guarantee.
+
+
+## Linux CI observations
+
+The first browser-matrix run used GitHub's Ubuntu 24.04 runner, Chromium 153, Firefox 155, and WebKit 26.6. All three completed 12/24 MP imports and exports. For 24 MP images, warmed preview render samples were approximately 34–42 ms in Chromium, 32–36 ms in Firefox, and 44–68 ms in WebKit. Export workflow times (including the format dialog interaction) were approximately 243 ms, 434 ms, and 2,195 ms respectively. WASM capacity after export was 206.90 MB in each engine. These are synthetic-fixture observations, not mobile-device guarantees.
+
+A stability workflow also repeats six 12 MP imports and sends 100 slider events per image, checking that the final state is displayed and that WASM memory capacity plateaus. Browser canvas/JavaScript allocations remain outside that capacity measurement. Automated accessibility checks cover both themes, empty/loaded views, and crop/export dialogs; manual visual review includes narrow mobile layouts.

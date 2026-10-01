@@ -1,4 +1,5 @@
 import { useRef, useState } from 'preact/hooks';
+import { NumberInput } from './NumberInput';
 import { curveChannels, linearCurve, type CurveChannel, type CurvePoint, type Curves } from '../editor/curves';
 
 export function CurveEditor({ curves, disabled, onChange, onCommit }: {
@@ -79,8 +80,8 @@ export function CurveEditor({ curves, disabled, onChange, onCommit }: {
         }} onKeyUp={onCommit} onBlur={onCommit} />)}
     </svg>
     <div class="curve-numbers">
-      <label>Input<input aria-label="Point input" type="number" min="0" max="255" value={Math.round(point[0] * 255)} disabled={disabled || selected === 0 || selected === points.length - 1} onChange={event => { changePoint(selected, event.currentTarget.valueAsNumber / 255, point[1], false); event.currentTarget.value = String(Math.round(point[0] * 255)); }} /></label>
-      <label>Output<input aria-label="Point output" type="number" min="0" max="255" value={Math.round(point[1] * 255)} disabled={disabled} onChange={event => { changePoint(selected, point[0], event.currentTarget.valueAsNumber / 255, false); event.currentTarget.value = String(Math.round(point[1] * 255)); }} /></label>
+      <label>Input<NumberInput label="Point input" min={0} max={255} value={Math.round(point[0] * 255)} disabled={disabled || selected === 0 || selected === points.length - 1} onCommit={value => changePoint(selected, value / 255, point[1], false)} /></label>
+      <label>Output<NumberInput label="Point output" min={0} max={255} value={Math.round(point[1] * 255)} disabled={disabled} onCommit={value => changePoint(selected, point[0], value / 255, false)} /></label>
       <button class="text-button" disabled={disabled || selected === 0 || selected === points.length - 1} onClick={removePoint}>Remove</button>
     </div>
     <p class="curve-help">Left: shadows · Right: highlights</p>

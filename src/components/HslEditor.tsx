@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { NumberInput } from './NumberInput';
 import { bandLabel, colorBands, emptyBand, hslKeys, hslLabels, type ColorBand, type HslKey, type HslSettings } from '../editor/hsl';
 
 const swatches = ['#d96359', '#e69e53', '#e4c958', '#75a969', '#63b8b0', '#6a98d2', '#9c7bcb', '#c778ac'];
@@ -18,11 +19,7 @@ export function HslEditor({ settings, disabled, onChange, onReset, onCommit }: {
     {hslKeys.map(key => <div class="adjustment-control" key={key}>
       <div class="slider-heading"><label for={`hsl-${key}`}>{hslLabels[key]}</label><div class="value-actions">
         <button class="reset-control" aria-label={`Reset ${band} ${hslLabels[key].toLowerCase()}`} disabled={disabled || values[key] === 0} onClick={() => onChange(band, key, 0)}>↺</button>
-        <div class="numeric-control"><input aria-label={`${label} ${hslLabels[key].toLowerCase()} value`} type="number" min="-100" max="100" step="1" value={values[key]} disabled={disabled} onChange={event => {
-          const value = event.currentTarget.valueAsNumber;
-          if (Number.isFinite(value)) onChange(band, key, Math.max(-100, Math.min(100, value)));
-          event.currentTarget.value = String(Number.isFinite(value) ? Math.max(-100, Math.min(100, value)) : values[key]);
-        }} /></div>
+        <div class="numeric-control"><NumberInput label={`${label} ${hslLabels[key].toLowerCase()} value`} min={-100} max={100} value={values[key]} disabled={disabled} onCommit={value => onChange(band, key, value)} /></div>
       </div></div>
       <input id={`hsl-${key}`} class="exposure-slider" type="range" min="-100" max="100" step="1" value={values[key]} disabled={disabled} aria-label={`${label} ${hslLabels[key].toLowerCase()}`} onInput={event => onChange(band, key, event.currentTarget.valueAsNumber, true)} onChange={onCommit} onPointerUp={onCommit} onPointerCancel={onCommit} onKeyUp={onCommit} onBlur={onCommit} />
       <div class="range-labels" aria-hidden="true"><span>{key === 'hue' ? 'Shift back' : key === 'saturation' ? 'Muted' : 'Darker'}</span><span>{key === 'hue' ? 'Shift forward' : key === 'saturation' ? 'Vivid' : 'Brighter'}</span></div>

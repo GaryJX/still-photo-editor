@@ -1,4 +1,5 @@
 import { adjustmentValue, type Adjustment } from '../editor/recipe';
+import { NumberInput } from './NumberInput';
 
 const descriptions: Record<Adjustment, [string, string, string, string]> = {
   exposure: ['Exposure', 'Darker', 'Brighter', 'Change the overall brightness of your photo.'],
@@ -20,12 +21,7 @@ export function AdjustmentSlider({ name, value, disabled, onInput, onCommit, onC
     <div class="slider-heading"><label for={name}>{label}</label>
       <div class="value-actions">
         <button class="reset-control" title={`Reset ${label.toLowerCase()}`} aria-label={`Reset ${label.toLowerCase()}`} disabled={disabled || value === 0} onClick={() => onChange(0)}>↺</button>
-        <div class="numeric-control"><input aria-label={`${label} value`} type="number" min={-limit} max={limit} step={step} value={value} disabled={disabled} onChange={(event) => {
-          const input = event.currentTarget;
-          if (!Number.isFinite(input.valueAsNumber)) { input.value = String(value); return; }
-          const next = adjustmentValue(name, input.valueAsNumber);
-          input.value = String(next); onChange(next);
-        }} />{name === 'exposure' && <span>EV</span>}</div>
+        <div class="numeric-control"><NumberInput label={`${label} value`} min={-limit} max={limit} step={step} value={value} disabled={disabled} onCommit={next => onChange(adjustmentValue(name, next))} />{name === 'exposure' && <span>EV</span>}</div>
       </div>
     </div>
     <input id={name} class="exposure-slider" type="range" min={-limit} max={limit} step={step} value={value} disabled={disabled} aria-describedby={`${name}-help`}

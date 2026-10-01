@@ -237,6 +237,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 
 ## Implementation log
 
+- **2026-09-30 — Cross-browser finding corrected:** the first Linux CI run passed 98/99 checks, including WebP export in Chromium, Firefox, and Linux WebKit. Chromium exposed an in-progress numeric value being overwritten by an unrelated render. Shared numeric inputs now preserve their draft until blur/Enter, with a regression test. Added repeated 12 MP imports and 100-event slider bursts; WASM capacity plateaus locally. The updated local suite passed 33 checks with one unavailable WebP encoder skip; CI is being rerun. Mobile crop/export layouts were visually reviewed.
+
 - **2026-09-30 — Release checks started:** added Chromium/Firefox/WebKit browser gates before Pages deployment, retained failure artifacts, and pinned the CI runner to Ubuntu 24.04. Added automated WCAG A/AA checks for light/dark empty and loaded views plus crop/export dialogs. The checks identified low-contrast light-theme labels, which were corrected; both local accessibility workflows now pass. Cross-browser CI results are pending.
 
 - **2026-09-30 — Recovery and mobile workflow:** introduced a worker client that rejects pending RPCs on failure, a retained source file and generation guards for safe recovery, and a Recover editor action that preserves edits/history. Added a collapsible mobile controls panel that stays expanded on desktop. Production build and 29 WebKit workflows passed, with the unsupported native WebP encoder check skipped. Recovery was tested by terminating a simulated failed worker and restoring the edited pixels/history.

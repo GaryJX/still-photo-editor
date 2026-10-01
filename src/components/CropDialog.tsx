@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { NumberInput } from './NumberInput';
 import { centeredCrop, fullCrop, type Crop } from '../editor/geometry';
 import type { Frame } from '../worker/types';
 
@@ -78,7 +79,7 @@ export function CropDialog({ frame, initial, onApply, onCancel }: { frame: Frame
       </div>
     </div></div>
     <p class="curve-help">Drag the corners to resize, or drag inside to move. Arrow keys move a focused selection.</p>
-    <details class="crop-fine"><summary>Fine tune</summary><div>{(['x', 'y', 'width', 'height'] as const).map(key => <label key={key}>{({ x: 'Left', y: 'Top', width: 'Width', height: 'Height' })[key]} (%)<input aria-label={`Crop ${key} percent`} type="number" min="0" max="100" step="0.1" disabled={!!ratio && (key === 'width' || key === 'height')} value={Math.round(crop[key] * 10000) / 100} onChange={event => { const value = event.currentTarget.valueAsNumber / 100; if (Number.isFinite(value)) setCrop(bounded({ ...crop, [key]: value })); }} /></label>)}</div></details>
+    <details class="crop-fine"><summary>Fine tune</summary><div>{(['x', 'y', 'width', 'height'] as const).map(key => <label key={key}>{({ x: 'Left', y: 'Top', width: 'Width', height: 'Height' })[key]} (%)<NumberInput label={`Crop ${key} percent`} min={0} max={100} step={0.1} disabled={!!ratio && (key === 'width' || key === 'height')} value={Math.round(crop[key] * 10000) / 100} onCommit={value => setCrop(bounded({ ...crop, [key]: value / 100 }))} /></label>)}</div></details>
     <div class="dialog-footer"><span>{Math.max(1, Math.round(crop.width * frame.outputWidth)).toLocaleString()} × {Math.max(1, Math.round(crop.height * frame.outputHeight)).toLocaleString()} px</span><div><button class="button button-quiet" onClick={onCancel}>Cancel</button><button class="button button-primary" onClick={() => onApply(crop)}>Apply crop</button></div></div>
   </dialog>;
 }

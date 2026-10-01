@@ -62,3 +62,18 @@ test('one slider gesture is one undo step and new edits invalidate redo', async 
   await page.keyboard.press('Control+z');
   await expect.poll(() => field(page, 'tint')).toBe(0);
 });
+
+test('typing into a numeric field survives an unrelated preview update', async ({ page }) => {
+  await openPhoto(page);
+  const tint = page.getByRole('spinbutton', { name: 'Tint value' });
+  await tint.fill('25');
+  await page.getByRole('slider', { name: 'Exposure', exact: true }).evaluate(input => {
+    (input as HTMLInputElement).value = '1';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await expect.poll(() => field(page, 'exposure')).toBe(1);
+  await expect(tint).toHaveValue('25');
+  await tint.press('Tab');
+  await expect.poll(() => field(page, 'tint')).toBe(25);
+});
