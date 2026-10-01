@@ -1,6 +1,6 @@
 # Release validation
 
-The release workflow builds the Rust/WASM engine and TypeScript application, runs Rust/frontend tests, then runs browser workflows in Chromium, Firefox, and WebKit on Ubuntu 24.04 before publishing Pages. A failed check prevents deployment. Traces and diagnostic results are retained for failures.
+The release workflow builds the Rust/WASM engine and TypeScript application and runs Rust/frontend tests on Ubuntu 24.04. It then passes the production artifact to a separate browser job using the official Playwright Noble image, pinned to the same version as `@playwright/test`. Chromium, Firefox, and WebKit must all pass before that exact artifact is published to Pages. The prebuilt image avoids repeating slow Ubuntu browser-dependency downloads. A failed check prevents deployment. Traces and diagnostic results are retained for failures.
 
 ## Coverage
 

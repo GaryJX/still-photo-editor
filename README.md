@@ -125,7 +125,7 @@ APP_BASE_PATH=/still-photo-editor/ npm run build
 APP_BASE_PATH=/still-photo-editor/ npm run test:e2e -- --project=webkit
 ```
 
-This validates the production bundle under `/still-photo-editor/`, including the worker and WASM asset paths.
+This validates the production bundle under `/still-photo-editor/`, including the worker and WASM asset paths. To serve that build manually, use `APP_BASE_PATH=/still-photo-editor/ npm run preview` so the preview server uses the same path.
 
 ## License
 

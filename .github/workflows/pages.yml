@@ -9,12 +9,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: github-pages
+  group: still-photo-editor-pages
   cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-24.04
+    outputs:
+      base_path: ${{ steps.pages.outputs.base_path }}
     permissions:
       contents: read
       pages: read
@@ -48,13 +50,43 @@ jobs:
         env:
           APP_BASE_PATH: ${{ steps.pages.outputs.base_path }}/
 
-      - name: Install browser test engines
-        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Save the production build for browser checks
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-build
+          path: dist
+          retention-days: 1
+
+  browser-checks:
+    needs: build
+    runs-on: ubuntu-24.04
+    container:
+      # Keep this version aligned with @playwright/test in package.json.
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restore the production build
+        uses: actions/download-artifact@v4
+        with:
+          name: site-build
+          path: dist
 
       - name: Verify Chromium, Firefox, and WebKit
         run: npm run test:e2e
         env:
-          APP_BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+          APP_BASE_PATH: ${{ needs.build.outputs.base_path }}/
 
       - name: Keep test results
         if: failure()
@@ -70,7 +102,7 @@ jobs:
           path: dist
 
   deploy:
-    needs: build
+    needs: browser-checks
     runs-on: ubuntu-latest
     permissions:
       pages: write
