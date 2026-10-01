@@ -73,6 +73,16 @@ svg { flex-shrink: 0; }
 .comparison-label { position: absolute; top: 12px; padding: 6px 10px; color: #fff; background: #202820bb; border-radius: 5px; font-size: 11px; pointer-events: none; }
 .comparison-label-original { left: 12px; }
 .comparison-label-edited { right: 12px; }
+.comparison-line, .comparison-handle, .comparison-label { opacity: 0; }
+.comparison-preview:hover .comparison-line,
+.comparison-preview:hover .comparison-handle,
+.comparison-preview:hover .comparison-label,
+.comparison-preview[data-keyboard-focus="true"] .comparison-line,
+.comparison-preview[data-keyboard-focus="true"] .comparison-handle,
+.comparison-preview[data-keyboard-focus="true"] .comparison-label { opacity: 1; }
+@media (hover: none) {
+  .comparison-line, .comparison-handle, .comparison-label { opacity: 1; }
+}
 .comparison-actions { display: flex; gap: 6px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .controls { padding: 32px 25px 0; border-left: 1px solid var(--line); display: flex; flex-direction: column; }

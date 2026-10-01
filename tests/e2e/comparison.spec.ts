@@ -54,6 +54,24 @@ test('divider starts centered and reveals the correct images at every endpoint',
   await expect(divider).toHaveAttribute('aria-valuenow', '50');
 });
 
+test('comparison chrome hides away from the image and stays accessible by keyboard', async ({ page }) => {
+  await openEdited(page);
+  const preview = page.locator('.comparison-preview');
+  const line = page.locator('.comparison-line');
+  const divider = page.getByRole('slider', { name: 'Before and after comparison' });
+  await page.mouse.move(0, 0);
+  await expect(line).toHaveCSS('opacity', '0');
+  await preview.hover();
+  await expect(line).toHaveCSS('opacity', '1');
+  await divider.click();
+  await page.mouse.move(0, 0);
+  await expect(line).toHaveCSS('opacity', '0');
+  await divider.press('ArrowLeft');
+  await expect(line).toHaveCSS('opacity', '1');
+  await page.getByRole('button', { name: 'Show original' }).focus();
+  await expect(line).toHaveCSS('opacity', '0');
+});
+
 test.describe('touch comparison', () => {
   test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
   test('responds to touch without changing the edits', async ({ page }) => {

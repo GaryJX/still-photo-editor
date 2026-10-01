@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'preact/hooks';
+import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { Frame, RenderMetrics } from '../worker/types';
 
 function draw(canvas: HTMLCanvasElement | null, frame: Frame) {
@@ -15,6 +15,7 @@ export function ComparisonPreview({ frame, original, name, metrics, position, on
 }) {
   const editedCanvas = useRef<HTMLCanvasElement>(null);
   const originalCanvas = useRef<HTMLCanvasElement>(null);
+  const [keyboardFocus, setKeyboardFocus] = useState(false);
   const activePointer = useRef<number | null>(null);
 
   useLayoutEffect(() => draw(editedCanvas.current, frame), [frame]);
@@ -26,7 +27,7 @@ export function ComparisonPreview({ frame, original, name, metrics, position, on
     onPositionChange(Math.round(Math.max(0, Math.min(100, (clientX - bounds.left) / bounds.width * 100)) * 10) / 10);
   }
 
-  return <div class="photo-frame comparison-preview" style={{ '--comparison': `${position}%` }}>
+  return <div class="photo-frame comparison-preview" data-keyboard-focus={keyboardFocus} style={{ '--comparison': `${position}%` }}>
     <canvas ref={editedCanvas} data-preview aria-label={`Edited preview of ${name}`}
       data-exposure={frame.exposure} data-recipe={frame.recipeKey} data-render-ms={frame.metrics.renderMs}
       data-output-width={frame.outputWidth} data-output-height={frame.outputHeight}
@@ -42,10 +43,13 @@ export function ComparisonPreview({ frame, original, name, metrics, position, on
       aria-valuemin={0} aria-valuemax={100} aria-valuenow={position}
       aria-valuetext={`${Math.round(position)}% original, ${Math.round(100 - position)}% edited`}
       aria-describedby="comparison-help"
+      onFocus={() => setKeyboardFocus(true)}
+      onBlur={() => setKeyboardFocus(false)}
       onPointerDown={event => {
         if (!event.isPrimary || event.button !== 0) return;
         activePointer.current = event.pointerId;
         event.currentTarget.focus({ preventScroll: true });
+        setKeyboardFocus(false);
         event.currentTarget.setPointerCapture(event.pointerId);
         move(event.clientX, event.currentTarget);
       }}
@@ -60,6 +64,7 @@ export function ComparisonPreview({ frame, original, name, metrics, position, on
       onLostPointerCapture={() => { activePointer.current = null; }}
       onDblClick={() => onPositionChange(50)}
       onKeyDown={event => {
+        setKeyboardFocus(true);
         const step = event.shiftKey ? 10 : 1;
         let next: number;
         if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') next = position - step;

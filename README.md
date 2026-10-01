@@ -36,6 +36,8 @@ The roadmap is implemented for the documented supported formats. See the compati
 
 Use **Save as preset** to keep the current look in this browser, download it as XMP, or both. You can select light, color, curves, and color-mix groups; crop and rotation are excluded.
 
+The comparison divider and labels appear while hovering over the photo or using the keyboard. Touch-only devices keep them visible so the control stays discoverable. Moving away hides the controls while keeping your chosen split.
+
 ## Planned experience
 
 1. Drop in a photo.

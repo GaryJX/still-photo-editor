@@ -6,7 +6,7 @@ Build a useful photo editor that runs entirely in the browser, uses Rust/WebAsse
 
 **Status:** Milestones 0–7 are complete for the documented supported formats. Version 1.0.0 is deployed and live-verified. Unsupported Adobe camera/profile-table formats and real-device testing limits are explicitly documented.
 
-**Next action:** No required roadmap work remains. Keep the release gates and documented compatibility limits intact when adding future features.
+**Next action:** Complete the requested hover comparison and zoom/pan follow-up; keep preset application semantics unchanged (the user asked for discussion only).
 
 ## Product boundaries
 
@@ -207,6 +207,14 @@ Requested by the user after encountering unsupported `Look` settings in real pre
 
 **Exit condition:** feasible look types are supported and tested; unresolved or unavailable profile dependencies receive actionable compatibility messages. Broader Adobe rendering parity is not assumed.
 
+### 8. Inspect the image — in progress
+
+- [x] Hide comparison chrome away from the image; reveal on hover, keyboard focus, and touch-only devices.
+- [ ] Add zoom, 100%, Fit, and bounded pan with aligned original/edited views.
+- [ ] Render bounded detail regions from the original pixels in the worker, with stale-result protection.
+- [ ] Verify view changes leave edits, history, exports, and leave warnings unchanged; reset the view for a new photo or geometry.
+- [ ] Verify mouse, keyboard, touch, responsive layout, and cross-browser deployment.
+
 ## Performance targets and verification
 
 These are initial targets, not established guarantees:
@@ -236,6 +244,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-10-01 — Quiet comparison:** divider, handle, and labels now appear on image hover or keyboard focus, with persistent touch-device affordances. Explicit keyboard modality avoids a WebKit programmatic-focus issue keeping the line visible after mouse use. Production build and all three focused WebKit comparison checks pass. Zoom/pan is next.
 
 - **2026-10-01 — Roadmap completed and released:** [CI run 36828323891](https://github.com/GaryJX/wasm-image-editor/actions/runs/36828323891) passed 19 Rust tests, 13 frontend tests, and all 138 Chromium/Firefox/WebKit checks, then deployed version 1.0.0 (`b9b5f3c`). Live-site verification confirmed asset loading, WASM LUT rendering, XMP export/import with dependencies, PNG export, and correct unsaved-edit state. All requested milestones are delivered within the supported-format boundaries; missing/proprietary Adobe data is reported rather than guessed.
 
