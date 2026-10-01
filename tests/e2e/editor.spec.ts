@@ -71,7 +71,9 @@ test('keyboard slider input and transparent PNG export work on a narrow viewport
   await page.goto('./');
   await page.getByLabel('Choose a photo', { exact: true }).setInputFiles({ name: 'alpha.png', mimeType: 'image/png', buffer: makePng(80, 120, false, 128) });
   const slider = page.getByRole('slider', { name: 'Exposure', exact: true });
+  await expect(slider).toBeEnabled();
   await slider.focus();
+  await expect(slider).toBeFocused();
   await slider.press('ArrowRight');
   await expect(page.locator('canvas[data-preview]')).toHaveAttribute('data-exposure', '0.05');
   expect((await pixel(page))[3]).toBe(128);
