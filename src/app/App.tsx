@@ -7,6 +7,7 @@ import { decodeOnMain, encodeOnMain, validatePhoto } from '../editor/image';
 import { adjustmentValue, initialRecipe, recipeKey, type Adjustment, type Recipe } from '../editor/recipe';
 import { EditHistory } from '../editor/history';
 import { AdjustmentSlider } from '../components/AdjustmentSlider';
+import { CurveEditor } from '../components/CurveEditor';
 import { LatestRenderer } from '../editor/scheduler';
 import type { EngineApi, Frame, PhotoInfo, RenderMetrics } from '../worker/types';
 
@@ -242,6 +243,7 @@ export function App() {
             {(['warmth', 'tint', 'saturation'] as const).map(name => <AdjustmentSlider key={name} name={name} value={recipe[name]} disabled={disabled} onInput={value => adjust(name, value, true)} onCommit={commitGesture} onChange={value => adjust(name, value)} />)}
             <details class="advanced-controls"><summary>More color controls</summary><AdjustmentSlider name="vibrance" value={recipe.vibrance} disabled={disabled} onInput={value => adjust('vibrance', value, true)} onCommit={commitGesture} onChange={value => adjust('vibrance', value)} /></details>
           </div>
+          <CurveEditor curves={recipe.curves} disabled={disabled} onCommit={commitGesture} onChange={(channel, points, transient) => applyRecipe({ ...history.current.current, curves: { ...history.current.current.curves, [channel]: points } }, transient)} />
           <div class="panel-bottom">
             <div class="tip"><span class="tip-mark"><Icon name="check" size={15} /></span><div><strong>Room to experiment</strong><p>Your original stays untouched. Reset your edits whenever you like.</p></div></div>
             <div class="export-note"><span class="tiny-dot" />Full-size PNG export</div>

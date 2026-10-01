@@ -4,9 +4,9 @@
 
 Build a useful photo editor that runs entirely in the browser, uses Rust/WebAssembly for processing, and makes editing approachable for beginners. A user should be able to open a photo, apply an XMP preset or adjust a few controls, compare the result, and download the edited image.
 
-**Status:** Milestones 0 and 1 complete and published. Milestone 2 now has global light/color controls, edit history, and the comparison divider; curves, HSL, and geometry remain. Milestones 3–5 remain open.
+**Status:** Milestones 0 and 1 complete and published. Milestone 2 now has global light/color controls, master/RGB curves, edit history, and the comparison divider; HSL and geometry remain. Dark mode is published. Milestones 3–5 remain open; XMP export is queued as Milestone 6.
 
-**Next action:** Add master/RGB curves, then publish an initial XMP importer and saved-preset library for the implemented controls. Finish HSL and crop/rotation afterwards, extending the XMP mapper as their renderers ship. This incremental sequence gets the user's preset workflow into testing sooner.
+**Next action:** Publish an initial XMP importer and saved-preset library for the implemented controls. Finish HSL and crop/rotation afterwards, extending the XMP mapper as their renderers ship. This incremental sequence gets the user's preset workflow into testing sooner. XMP export remains after the existing roadmap.
 
 ## Product boundaries
 
@@ -101,7 +101,7 @@ All entries below are planned, not currently implemented. Maintain the final nam
 
 Use `ProcessVersion` to recognize known semantics and flag unknown versions; do not silently interpret every legacy field as a current control. Embedded/external camera profiles and LUT dependencies remain unsupported initially. Do not fetch them from locations referenced in XMP.
 
-XMP serialization is not required for the first release. Preserve the original imported file, and use the app's versioned JSON recipe internally.
+XMP serialization is deferred to Milestone 6, after the current roadmap (Milestones 2–5), at the user's request. Preserve the original imported file, and use the app's versioned JSON recipe internally so both import and later export can share explicit field mappings.
 
 ### Storage
 
@@ -134,7 +134,8 @@ If storage is unavailable or full, keep the preset usable for the current sessio
 
 - [x] Define and document the versioned global-adjustment recipe, operation order, color transforms, and parameter ranges; extend it as new controls ship.
 - [x] Implement contrast, warmth/tint, and saturation/vibrance.
-- [ ] Implement master/RGB curves and HSL bands.
+- [x] Implement master/RGB curves.
+- [ ] Implement HSL bands.
 - [ ] Implement normalized crop and 90-degree rotation with preview/export agreement.
 - [x] Add recipe history, grouped slider gestures, per-control reset, and reset-all.
 - [x] Add before/after comparison using matching geometry. A centered, draggable divider now reveals cached original/edited previews; future crop/rotation must transform both consistently.
@@ -176,6 +177,20 @@ If storage is unavailable or full, keep the preset usable for the current sessio
 
 **Exit condition:** the core workflow passes its checks, known limitations are documented, and the production build can be served as static files.
 
+### 6. Export edits as reusable XMP presets — after the existing roadmap
+
+Work on this only after completing the existing roadmap above. Requested by the user on 2026-09-30.
+
+- [ ] Add “Save as preset” for the current adjustment recipe, with an editable preset name and an option to keep it in the browser's preset library.
+- [ ] Add “Export XMP” to download supported global adjustments as a reusable `.xmp` preset.
+- [ ] Share import/export mappings and document approximate Adobe equivalents. Export only settings with an intentional mapping; clearly report app-specific or unsupported adjustments instead of claiming identical Lightroom rendering.
+- [ ] Exclude image pixels, comparison-divider position, theme, history, source paths, crop, and rotation from the reusable preset by default.
+- [ ] Use correct Camera Raw/RDF namespaces, escaping, names, identifiers, process-version metadata, and tone-curve arrays.
+- [ ] Verify edit → export → import round-trips in this app, including partial settings, RGB curves, names with special characters, and out-of-range/unsupported fields.
+- [ ] Validate external-editor compatibility where available and document what was actually tested.
+
+**Exit condition:** a user can save their look, download an XMP preset, and reapply it to another photo, with honest compatibility reporting.
+
 ## Performance targets and verification
 
 These are initial targets, not established guarantees:
@@ -205,6 +220,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-09-30 — Tone curves:** implemented engine 0.3.0 with validated, piecewise-linear master and RGB curves composed before saturation/vibrance. Added point creation, dragging, numeric input/output, keyboard movement, removal/reset, and undo integration. Ten Rust tests and the production build passed; browser checks verified curve composition and preview/export pixel agreement. A WebKit SVG focus issue was fixed by using the case-correct `tabindex` attribute, and keyboard checks now pass. XMP export was added to the roadmap as a later milestone at the user's request.
 
 - **2026-09-30 — Dark mode:** added a sun/moon toggle, first-paint system-preference detection, localStorage persistence with a session fallback, and a dark palette for the workspace and controls. Verified both storage cases, unchanged image pixels, persistence after reload, and the 320 px header layout; inspected desktop/mobile screenshots. The corrected color-engine deployment (`3011f82`) succeeded. Curve editing remains in progress.
 

@@ -6,7 +6,7 @@ A browser-based photo editor with a Rust/WebAssembly processing engine and a min
 
 ## Project status
 
-The editor, branded **Still**, now includes the first processing milestone, a draggable comparison divider, global light/color adjustments, undo/redo, and full-resolution PNG export. Curves and XMP presets are next. The local Git repository uses `main`.
+The editor, branded **Still**, now includes a draggable comparison divider, global light/color adjustments, master/RGB tone curves, undo/redo, light/dark themes, and full-resolution PNG export. XMP import is next. The local Git repository uses `main`.
 
 [PLAN.md](PLAN.md) is the implementation roadmap, acceptance checklist, and decision log. Update it as work progresses.
 
@@ -14,6 +14,7 @@ The editor, branded **Still**, now includes the first processing milestone, a dr
 
 - Open or drop a JPEG, PNG, or WebP photo.
 - Adjust exposure, contrast, warmth, tint, color intensity, and vibrance, with a responsive preview.
+- Edit the master and red/green/blue tone curves with draggable points, numeric values, and keyboard controls.
 - Drag a centered before/after divider: original on the left, edits on the right. Move fully left for all edits or fully right for the original. Touch, arrow keys, Home/End, and a recenter button are supported.
 - Undo/redo edits, reset one control, or reset everything. A slider gesture is one undo step; ⌘/Ctrl+Z and ⌘/Ctrl+Shift+Z work outside text fields.
 - Export a full-size PNG while preserving transparency.
@@ -22,7 +23,9 @@ The editor, branded **Still**, now includes the first processing milestone, a dr
 
 Images remain on the device. The original stays unchanged. Reloading clears the editing session. Source metadata is not preserved in exported PNGs; the processing pipeline uses SDR sRGB.
 
-XMP presets, curves, individual color bands, and crop are upcoming milestones. The current interface contains only implemented controls.
+XMP presets, individual color bands, and crop are upcoming milestones. The current interface contains only implemented controls.
+
+Exporting your own edits as reusable XMP presets is also planned, after the current editing/import roadmap.
 
 ## Planned experience
 

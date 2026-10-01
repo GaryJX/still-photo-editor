@@ -22,8 +22,14 @@ impl ImageEngine {
         Ok(Self { source, preview })
     }
 
-    pub fn render(&self, values: &[f32], full_resolution: bool) -> Result<Vec<u8>, JsValue> {
+    pub fn render(
+        &self,
+        values: &[f32],
+        curve_values: &[f32],
+        full_resolution: bool,
+    ) -> Result<Vec<u8>, JsValue> {
         let settings = validate_settings(values).map_err(JsValue::from_str)?;
+        let curves = parse_curves(curve_values).map_err(JsValue::from_str)?;
         Ok(apply_adjustments(
             if full_resolution {
                 &self.source
@@ -31,6 +37,7 @@ impl ImageEngine {
                 &self.preview
             },
             &settings,
+            &curves,
         ))
     }
 
@@ -68,7 +75,54 @@ fn validate_settings(values: &[f32]) -> Result<[f32; 6], &'static str> {
     Ok(values.try_into().unwrap())
 }
 
-fn apply_adjustments(input: &[u8], settings: &[f32; 6]) -> Vec<u8> {
+type Curve = Vec<(f32, f32)>;
+
+fn parse_curves(values: &[f32]) -> Result<[Curve; 4], &'static str> {
+    let mut offset = 0;
+    let mut curves: [Curve; 4] = std::array::from_fn(|_| Vec::new());
+    for curve in &mut curves {
+        let count = *values.get(offset).ok_or("Missing curve points")?;
+        if !count.is_finite() || count.fract() != 0.0 || !(2.0..=32.0).contains(&count) {
+            return Err("Invalid curve point count");
+        }
+        offset += 1;
+        for _ in 0..count as usize {
+            let x = *values.get(offset).ok_or("Missing curve input")?;
+            let y = *values.get(offset + 1).ok_or("Missing curve output")?;
+            if !x.is_finite()
+                || !y.is_finite()
+                || !(0.0..=1.0).contains(&x)
+                || !(0.0..=1.0).contains(&y)
+            {
+                return Err("Invalid curve point");
+            }
+            if curve.last().is_some_and(|(previous, _)| *previous >= x) {
+                return Err("Curve inputs must increase");
+            }
+            curve.push((x, y));
+            offset += 2;
+        }
+        if curve[0].0 != 0.0 || curve.last().unwrap().0 != 1.0 {
+            return Err("Curve endpoints must span zero to one");
+        }
+    }
+    if offset != values.len() {
+        return Err("Unexpected curve data");
+    }
+    Ok(curves)
+}
+
+fn evaluate_curve(curve: &Curve, value: f32) -> f32 {
+    for pair in curve.windows(2) {
+        let [(x0, y0), (x1, y1)] = [pair[0], pair[1]];
+        if value <= x1 {
+            return y0 + (y1 - y0) * ((value - x0) / (x1 - x0)).clamp(0.0, 1.0);
+        }
+    }
+    curve.last().unwrap().1
+}
+
+fn apply_adjustments(input: &[u8], settings: &[f32; 6], curves: &[Curve; 4]) -> Vec<u8> {
     let [exposure, contrast, warmth, tint, saturation, vibrance] = *settings;
     let w = warmth / 100.0;
     let t = tint / 100.0;
@@ -91,7 +145,7 @@ fn apply_adjustments(input: &[u8], settings: &[f32; 6]) -> Vec<u8> {
             let linear = srgb_to_linear(i as f32 / 255.0) * gain * balance[channel];
             let encoded = linear_to_srgb(linear);
             let tone = ((encoded - 0.5) * slope + 0.5).clamp(0.0, 1.0);
-            *entry = tone;
+            *entry = evaluate_curve(&curves[channel + 1], evaluate_curve(&curves[0], tone));
         }
     }
     let mut output = input.to_vec();
@@ -117,8 +171,33 @@ fn apply_adjustments(input: &[u8], settings: &[f32; 6]) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    const IDENTITY: [f32; 20] = [
+        2.0, 0.0, 0.0, 1.0, 1.0, 2.0, 0.0, 0.0, 1.0, 1.0, 2.0, 0.0, 0.0, 1.0, 1.0, 2.0, 0.0, 0.0,
+        1.0, 1.0,
+    ];
     fn adjust(input: &[u8], settings: &[f32; 6]) -> Vec<u8> {
-        apply_adjustments(input, settings)
+        apply_adjustments(input, settings, &parse_curves(&IDENTITY).unwrap())
+    }
+    #[test]
+    fn curves_compose_master_then_channel_and_interpolate_linearly() {
+        let mut curves = parse_curves(&IDENTITY).unwrap();
+        curves[0] = vec![(0.0, 0.2), (1.0, 0.8)];
+        curves[1] = vec![(0.0, 0.0), (1.0, 0.5)];
+        assert_eq!(
+            apply_adjustments(&[0, 0, 0, 127], &[0.0; 6], &curves),
+            [26, 51, 51, 127]
+        );
+        assert!((evaluate_curve(&curves[0], 0.5) - 0.5).abs() < 0.00001);
+    }
+    #[test]
+    fn malformed_curves_are_rejected() {
+        assert!(parse_curves(&[]).is_err());
+        let mut values = IDENTITY;
+        values[3] = 0.0;
+        assert!(parse_curves(&values).is_err());
+        values = IDENTITY;
+        values[2] = f32::NAN;
+        assert!(parse_curves(&values).is_err());
     }
     fn exposure(value: f32) -> [f32; 6] {
         [value, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -150,12 +229,18 @@ mod tests {
     fn rendering_never_compounds_edits_or_mutates_the_original() {
         let source = vec![128, 64, 32, 255];
         let engine = ImageEngine::new(source.clone(), source.clone()).unwrap();
-        let first = engine.render(&exposure(2.0), false).unwrap();
-        assert_eq!(engine.render(&exposure(2.0), false).unwrap(), first);
-        assert_eq!(engine.render(&exposure(0.0), true).unwrap(), source);
+        let first = engine.render(&exposure(2.0), &IDENTITY, false).unwrap();
         assert_eq!(
-            engine.render(&exposure(-1.0), false).unwrap(),
-            engine.render(&exposure(-1.0), true).unwrap()
+            engine.render(&exposure(2.0), &IDENTITY, false).unwrap(),
+            first
+        );
+        assert_eq!(
+            engine.render(&exposure(0.0), &IDENTITY, true).unwrap(),
+            source
+        );
+        assert_eq!(
+            engine.render(&exposure(-1.0), &IDENTITY, false).unwrap(),
+            engine.render(&exposure(-1.0), &IDENTITY, true).unwrap()
         );
     }
     #[test]

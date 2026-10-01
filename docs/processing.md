@@ -1,4 +1,4 @@
-# Processing contract: engine 0.2.0
+# Processing contract: engine 0.3.0
 
 ## Input and output
 
@@ -13,13 +13,19 @@ Current import limits are 60 MiB compressed, 40 megapixels decoded, and 16,384 p
 ```json
 {
   "schemaVersion": 1,
-  "engineVersion": "0.2.0",
+  "engineVersion": "0.3.0",
   "exposure": 0,
   "contrast": 0,
   "warmth": 0,
   "tint": 0,
   "saturation": 0,
-  "vibrance": 0
+  "vibrance": 0,
+  "curves": {
+    "master": [[0, 0], [1, 1]],
+    "red": [[0, 0], [1, 1]],
+    "green": [[0, 0], [1, 1]],
+    "blue": [[0, 0], [1, 1]]
+  }
 }
 ```
 
@@ -30,10 +36,13 @@ The current operation order is:
 1. Convert the sRGB input to linear light using the standard piecewise sRGB transfer function.
 2. Multiply by `2^exposure` and the relative white-balance gains described below.
 3. Convert back to sRGB, apply contrast around 0.5, then clamp to [0, 1].
-4. Apply saturation/vibrance around weighted sRGB luma; clamp and round to the nearest 8-bit value.
-5. Copy alpha unchanged.
+4. Apply the master curve, then the corresponding RGB channel curve.
+5. Apply saturation/vibrance around weighted sRGB luma; clamp and round to the nearest 8-bit value.
+6. Copy alpha unchanged.
 
-The first three operations are composed into three 256-entry float tables. Saturation/vibrance then operate on float RGB values for each pixel, with one final quantization. This avoids full-resolution float buffers and repeated per-pixel powers.
+The first four operations are composed into three 256-entry float tables. Saturation/vibrance then operate on float RGB values for each pixel, with one final quantization. This avoids full-resolution float buffers and repeated per-pixel powers.
+
+Curves use 2–32 normalized input/output points, increasing input coordinates, fixed input endpoints 0 and 1, and output values in [0, 1]. Interpolation is piecewise linear. The UI displays point values on a 0–255 scale. Master and channel curves are separate and are composed in that order; matching Adobe's spline interpolation is not claimed.
 
 All controls except exposure use [-100, 100]. With warmth `w` and tint `t` scaled to [-1, 1], white-balance gains are `[2^(0.4w + 0.2t), 2^(-0.2t), 2^(-0.4w + 0.2t)]`, normalized so their Rec.709-weighted sum is 1. These are relative color controls for rendered photos, not calibrated RAW Kelvin adjustments.
 
@@ -53,4 +62,4 @@ The canvas is updated in a layout effect so the visible pixels agree with the co
 
 History stores up to 100 immutable recipe snapshots, groups a slider gesture into one step, and clears redo when a new edit is committed. It never stores full-image history buffers. Comparison position is independent of the recipe and history.
 
-This engine does not yet implement XMP import, curves/HSL, crop, saved sessions, wide-gamut/HDR output, or RAW development. No hidden alternative renderer or server-side image processing is used.
+This engine does not yet implement XMP import, HSL, crop, saved sessions, wide-gamut/HDR output, or RAW development. No hidden alternative renderer or server-side image processing is used.
