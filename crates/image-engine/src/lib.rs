@@ -22,17 +22,15 @@ impl ImageEngine {
         Ok(Self { source, preview })
     }
 
-    pub fn render(&self, exposure: f32, full_resolution: bool) -> Result<Vec<u8>, JsValue> {
-        if !exposure.is_finite() || !(-4.0..=4.0).contains(&exposure) {
-            return Err(JsValue::from_str("Exposure must be between -4 and +4 EV"));
-        }
-        Ok(apply_exposure(
+    pub fn render(&self, values: &[f32], full_resolution: bool) -> Result<Vec<u8>, JsValue> {
+        let settings = validate_settings(values).map_err(JsValue::from_str)?;
+        Ok(apply_adjustments(
             if full_resolution {
                 &self.source
             } else {
                 &self.preview
             },
-            exposure,
+            &settings,
         ))
     }
 
@@ -57,20 +55,61 @@ fn linear_to_srgb(value: f32) -> f32 {
     }
 }
 
-fn apply_exposure(input: &[u8], exposure: f32) -> Vec<u8> {
-    // With a single point operation on 8-bit input, a float-computed lookup table
-    // is equivalent to per-pixel float math, without full-image float buffers.
+fn validate_settings(values: &[f32]) -> Result<[f32; 6], &'static str> {
+    if values.len() != 6 {
+        return Err("Expected six adjustment values");
+    }
+    for (index, value) in values.iter().enumerate() {
+        let limit = if index == 0 { 4.0 } else { 100.0 };
+        if !value.is_finite() || value.abs() > limit {
+            return Err("Adjustment is outside its supported range");
+        }
+    }
+    Ok(values.try_into().unwrap())
+}
+
+fn apply_adjustments(input: &[u8], settings: &[f32; 6]) -> Vec<u8> {
+    let [exposure, contrast, warmth, tint, saturation, vibrance] = *settings;
+    let w = warmth / 100.0;
+    let t = tint / 100.0;
+    let mut balance = [
+        2.0_f32.powf(0.4 * w + 0.2 * t),
+        2.0_f32.powf(-0.2 * t),
+        2.0_f32.powf(-0.4 * w + 0.2 * t),
+    ];
+    let normalization = balance[0] * 0.2126 + balance[1] * 0.7152 + balance[2] * 0.0722;
+    for channel in &mut balance {
+        *channel /= normalization;
+    }
     let gain = 2.0_f32.powf(exposure);
-    let mut table = [0u8; 256];
-    for (i, value) in table.iter_mut().enumerate() {
-        let linear = srgb_to_linear(i as f32 / 255.0) * gain;
-        *value = (linear_to_srgb(linear.clamp(0.0, 1.0)) * 255.0).round() as u8;
+    let slope = 2.0_f32.powf(contrast / 100.0);
+    // Compose point transforms in float tables. Quantize only after the final
+    // color operation, without retaining full-resolution float intermediates.
+    let mut tables = [[0.0_f32; 256]; 3];
+    for channel in 0..3 {
+        for (i, entry) in tables[channel].iter_mut().enumerate() {
+            let linear = srgb_to_linear(i as f32 / 255.0) * gain * balance[channel];
+            let encoded = linear_to_srgb(linear);
+            let tone = ((encoded - 0.5) * slope + 0.5).clamp(0.0, 1.0);
+            *entry = tone;
+        }
     }
     let mut output = input.to_vec();
     for pixel in output.chunks_exact_mut(4) {
-        pixel[0] = table[pixel[0] as usize];
-        pixel[1] = table[pixel[1] as usize];
-        pixel[2] = table[pixel[2] as usize];
+        let rgb = [
+            tables[0][pixel[0] as usize],
+            tables[1][pixel[1] as usize],
+            tables[2][pixel[2] as usize],
+        ];
+        let luma = rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+        let maximum = rgb[0].max(rgb[1]).max(rgb[2]);
+        let minimum = rgb[0].min(rgb[1]).min(rgb[2]);
+        let amount =
+            (1.0 + saturation / 100.0) * (1.0 + vibrance / 100.0 * (1.0 - (maximum - minimum)));
+        for channel in 0..3 {
+            pixel[channel] =
+                ((luma + (rgb[channel] - luma) * amount).clamp(0.0, 1.0) * 255.0).round() as u8;
+        }
     }
     output
 }
@@ -78,34 +117,83 @@ fn apply_exposure(input: &[u8], exposure: f32) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn adjust(input: &[u8], settings: &[f32; 6]) -> Vec<u8> {
+        apply_adjustments(input, settings)
+    }
+    fn exposure(value: f32) -> [f32; 6] {
+        [value, 0.0, 0.0, 0.0, 0.0, 0.0]
+    }
 
     #[test]
     fn identity_preserves_every_channel_value_and_alpha() {
         let pixels: Vec<u8> = (0..=255).flat_map(|x| [x, x, x, 173]).collect();
-        assert_eq!(apply_exposure(&pixels, 0.0), pixels);
+        assert_eq!(adjust(&pixels, &[0.0; 6]), pixels);
+        let colors = [128, 64, 37, 128, 1, 240, 65, 0];
+        assert_eq!(adjust(&colors, &[0.0; 6]), colors);
     }
-
     #[test]
     fn exposure_doubles_linear_light_not_srgb_values() {
-        assert_eq!(apply_exposure(&[128, 64, 0, 127], 1.0), [176, 90, 0, 127]);
-        assert_eq!(apply_exposure(&[255, 128, 0, 0], -1.0), [188, 92, 0, 0]);
+        assert_eq!(
+            adjust(&[128, 64, 0, 127], &exposure(1.0)),
+            [176, 90, 0, 127]
+        );
+        assert_eq!(adjust(&[255, 128, 0, 0], &exposure(-1.0)), [188, 92, 0, 0]);
     }
-
     #[test]
     fn bright_values_clip_and_alpha_is_unchanged() {
-        assert_eq!(apply_exposure(&[240, 255, 0, 21], 4.0), [255, 255, 0, 21]);
+        assert_eq!(
+            adjust(&[240, 255, 0, 21], &exposure(4.0)),
+            [255, 255, 0, 21]
+        );
     }
-
     #[test]
     fn rendering_never_compounds_edits_or_mutates_the_original() {
         let source = vec![128, 64, 32, 255];
         let engine = ImageEngine::new(source.clone(), source.clone()).unwrap();
-        let first = engine.render(2.0, false).unwrap();
-        assert_eq!(engine.render(2.0, false).unwrap(), first);
-        assert_eq!(engine.render(0.0, true).unwrap(), source);
+        let first = engine.render(&exposure(2.0), false).unwrap();
+        assert_eq!(engine.render(&exposure(2.0), false).unwrap(), first);
+        assert_eq!(engine.render(&exposure(0.0), true).unwrap(), source);
         assert_eq!(
-            engine.render(-1.0, false).unwrap(),
-            engine.render(-1.0, true).unwrap()
+            engine.render(&exposure(-1.0), false).unwrap(),
+            engine.render(&exposure(-1.0), true).unwrap()
         );
+    }
+    #[test]
+    fn saturation_removes_color_after_exposure() {
+        assert_eq!(
+            adjust(&[255, 0, 0, 91], &[-1.0, 0.0, 0.0, 0.0, -100.0, 0.0]),
+            [40, 40, 40, 91]
+        );
+    }
+    #[test]
+    fn white_balance_and_contrast_have_the_expected_direction() {
+        let warm = adjust(&[128, 128, 128, 255], &[0.0, 0.0, 100.0, 0.0, 0.0, 0.0]);
+        assert!(warm[0] > warm[1] && warm[1] > warm[2]);
+        let magenta = adjust(&[128, 128, 128, 255], &[0.0, 0.0, 0.0, 100.0, 0.0, 0.0]);
+        assert!(magenta[0] > magenta[1] && magenta[2] > magenta[1]);
+        let contrast = adjust(&[64, 128, 192, 255], &[0.0, 100.0, 0.0, 0.0, 0.0, 0.0]);
+        assert!(contrast[0] < 64 && contrast[2] > 192);
+    }
+    #[test]
+    fn vibrance_preserves_neutrals_and_affects_muted_colors_more() {
+        assert_eq!(
+            adjust(&[128, 128, 128, 255], &[0.0, 0.0, 0.0, 0.0, 0.0, 100.0]),
+            [128, 128, 128, 255]
+        );
+        assert_eq!(
+            adjust(&[255, 0, 0, 255], &[0.0, 0.0, 0.0, 0.0, 0.0, 100.0]),
+            [255, 0, 0, 255]
+        );
+        assert_ne!(
+            adjust(&[150, 100, 100, 255], &[0.0, 0.0, 0.0, 0.0, 0.0, 100.0]),
+            [150, 100, 100, 255]
+        );
+    }
+    #[test]
+    fn invalid_values_are_rejected() {
+        assert!(validate_settings(&[0.0; 5]).is_err());
+        assert!(validate_settings(&exposure(f32::NAN)).is_err());
+        assert!(validate_settings(&exposure(5.0)).is_err());
+        assert!(validate_settings(&[0.0, 101.0, 0.0, 0.0, 0.0, 0.0]).is_err());
     }
 }
