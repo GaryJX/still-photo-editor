@@ -6,7 +6,7 @@ Build a useful photo editor that runs entirely in the browser, uses Rust/WebAsse
 
 **Status:** Milestones 0–4 are implemented, including HSL, crop/rotation, export formats, recovery, and responsive controls. Dark mode and unsaved-edit protection are published. Release validation (Milestone 5) is in progress, followed by XMP export (6) and `Look`/profile compatibility (7). The user explicitly requested completing the entire roadmap and publishing each tested milestone.
 
-**Next action:** Run cross-browser release validation, fix findings, then implement XMP export and the feasible `Look`/profile subset. Then implement XMP export and the feasible `Look`/profile subset. Do not stop after a partial milestone unless a concrete external dependency blocks further progress.
+**Next action:** Implement XMP preset export, then the feasible `Look`/profile subset. Milestones 0–5 have passed their release checks; actual mobile-device testing and unavailable Adobe profile data are explicitly documented limitations. Then implement XMP export and the feasible `Look`/profile subset. Do not stop after a partial milestone unless a concrete external dependency blocks further progress.
 
 ## Product boundaries
 
@@ -170,12 +170,12 @@ If storage is unavailable or full, keep the preset usable for the current sessio
 
 ### 5. Validate and prepare the first release
 
-- [ ] Run production build, TypeScript checks, Rust tests, focused frontend tests, and browser workflows.
-- [ ] Exercise Chromium, Firefox, and WebKit automation; separately record any real Safari/iOS/Android testing and do not equate WebKit automation with device validation.
-- [ ] Profile large photos and long slider drags; add memory limits or tiled processing if measurements require them.
-- [ ] Verify orientation, transparent PNGs, portrait/landscape crops, reload persistence, and preview/export color agreement.
-- [ ] Check focus order, keyboard interaction, touch layout, and readable compatibility notices.
-- [ ] Write setup instructions, supported formats, XMP compatibility details, and measured performance limits.
+- [x] Run production build, TypeScript checks, Rust tests, focused frontend tests, and browser workflows.
+- [x] Exercise Chromium, Firefox, and WebKit automation; separately record any real Safari/iOS/Android testing and do not equate WebKit automation with device validation.
+- [x] Profile large photos and long slider drags; add memory limits or tiled processing if measurements require them.
+- [x] Verify orientation, transparent PNGs, portrait/landscape crops, reload persistence, and preview/export color agreement.
+- [x] Check focus order, keyboard interaction, touch layout, and readable compatibility notices.
+- [x] Write setup instructions, supported formats, XMP compatibility details, and measured performance limits.
 
 **Exit condition:** the core workflow passes its checks, known limitations are documented, and the production build can be served as static files.
 
@@ -236,6 +236,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-09-30 — Core roadmap release validated:** CI run [36823491967](https://github.com/GaryJX/wasm-image-editor/actions/runs/36823491967) passed and deployed the numeric-draft correction. Chromium, Firefox, and Linux WebKit passed the full matrix, including WebP, accessibility, recovery, memory stability, and 12/24 MP workflows. Local native tests and viewport reviews are recorded separately from real-device testing, which was not performed. Milestones 0–5 are complete within the documented SDR/browser constraints. Proceeding to XMP export, followed by `Look` support.
 
 - **2026-09-30 — Cross-browser finding corrected:** the first Linux CI run passed 98/99 checks, including WebP export in Chromium, Firefox, and Linux WebKit. Chromium exposed an in-progress numeric value being overwritten by an unrelated render. Shared numeric inputs now preserve their draft until blur/Enter, with a regression test. Added repeated 12 MP imports and 100-event slider bursts; WASM capacity plateaus locally. The updated local suite passed 33 checks with one unavailable WebP encoder skip; CI is being rerun. Mobile crop/export layouts were visually reviewed.
 

@@ -80,7 +80,7 @@ npm run build
 npm run test:e2e
 ```
 
-`npm run test:e2e -- --project=webkit` runs only the WebKit project. The initial validation passed six WebKit workflows; Chromium and Firefox could not launch in the development sandbox and remain unverified. WebKit automation is not a claim of real Safari or mobile-device coverage.
+`npm run test:e2e -- --project=webkit` runs only the WebKit project. The release matrix passes in Chromium, Firefox, and WebKit on Linux CI; local WebKit checks and viewport reviews also pass. Local Chromium/Firefox launches are restricted in this sandbox. Browser automation is not a claim of real Safari or mobile-device coverage.
 
 See [docs/processing.md](docs/processing.md) for the processing contract and [docs/performance.md](docs/performance.md) for measured results and limits.
 
