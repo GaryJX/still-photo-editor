@@ -1,6 +1,6 @@
 # WASM Image Editor
 
-A browser-based photo editor with a Rust/WebAssembly processing engine, a minimal interface, and reusable XMP presets. Images are processed on the user's device.
+A browser-based photo editor with a Rust/WebAssembly processing engine and a minimal interface. Images are processed on the user's device; reusable XMP presets are on the roadmap.
 
 [Open the editor](https://garyjx.github.io/wasm-image-editor/) · [Implementation plan](PLAN.md) · [MIT license](LICENSE)
 
