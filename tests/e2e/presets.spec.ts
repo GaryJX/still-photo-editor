@@ -83,6 +83,7 @@ test('saved presets can be renamed, backed up as the original XMP, and deleted',
 });
 
 test('XMP drop and application still work with session-only storage', async ({ page }) => {
+  page.on('dialog', dialog => void dialog.accept());
   await page.addInitScript(() => { Object.defineProperty(IDBFactory.prototype, 'open', { value: () => { throw new Error('Storage unavailable'); } }); });
   await page.goto('./'); await openPhoto(page);
   await page.evaluate(xml => {

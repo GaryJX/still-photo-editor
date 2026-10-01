@@ -6,7 +6,7 @@ Build a useful photo editor that runs entirely in the browser, uses Rust/WebAsse
 
 **Status:** Milestones 0 and 1 complete and published. Milestone 2 has global light/color controls, master/RGB curves, edit history, and comparison; HSL and geometry remain. Dark mode is published. Milestone 3's initial supported XMP subset and saved library are implemented. Milestones 4–5 remain open; XMP export is queued as Milestone 6.
 
-**Next action:** Add the requested native unsaved-edit warning, then finish HSL and crop/rotation, extending the XMP mapper as their renderers ship. Continue export/UX and release checks afterwards. XMP export remains after the existing roadmap.
+**Next action:** Finish HSL and crop/rotation, extending the XMP mapper as their renderers ship. Continue export/UX and release checks afterwards. Native unsaved-edit protection is implemented. XMP export remains after the existing roadmap.
 
 ## Product boundaries
 
@@ -157,6 +157,8 @@ If storage is unavailable or full, keep the preset usable for the current sessio
 
 ### 4. Finish the beginner-facing workflow
 
+- [x] Add native leave/refresh/close confirmation for unexported edits. Suppress it at defaults or the last exported recipe; reset the export baseline for each new image. Comparison, theme, and library-only changes do not count as edits.
+
 - [ ] Implement the final minimal desktop/mobile layout and progressive disclosure.
 - [ ] Make sliders, curves, crop controls, preset selection, and compare usable by keyboard.
 - [ ] Add JPEG export with quality selection and WebP when supported; flatten transparency against a documented background for JPEG.
@@ -220,6 +222,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-09-30 — Unsaved-edit protection:** added a conditional native `beforeunload` handler keyed to the current recipe and last successfully generated/downloaded PNG. Default settings never warn; new edits after export do, and undoing back to the export clears the warning. A new image clears the previous export baseline. Production build, six frontend tests, and all 20 functional WebKit workflows passed, including a real reload and export/reset/undo conditions. XMP import/library deployment (`80be838`) succeeded.
 
 - **2026-09-30 — XMP import and library:** implemented namespace-aware global setting extraction, explicit range/curve validation, compatibility reports, partial application, and original-file preservation. Added IndexedDB save/load, deduplication, renaming/deletion, original-XMP download, and a session-only fallback. Eighteen functional WebKit checks passed across the main and corrected touch-test runs, plus a fresh 12/24 MP baseline. Engine 0.3.0 previews measured 17–21 ms and full-size PNG exports roughly 320/577 ms on the same M4 Max baseline. The touch test now scrolls the comparison control into view before tapping it after edits further down the mobile page.
 

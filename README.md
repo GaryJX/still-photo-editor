@@ -21,8 +21,11 @@ The editor, branded **Still**, now includes a draggable comparison divider, glob
 - Use the editor on desktop or a narrow screen, with keyboard-accessible controls.
 - Switch between light and dark mode. The first visit follows your system setting; an explicit choice is remembered in this browser.
 - Import XMP presets, apply supported settings as one undo step, and save them in this browser. Rename, delete, or download the original file from the preset menu. See the [XMP compatibility guide](docs/xmp-support.md).
+- Get a native browser confirmation when refreshing, navigating away, or closing with unexported edits. No warning appears for defaults or the last exported recipe; changing the theme or comparison divider does not count as an edit.
 
 Images remain on the device. The original stays unchanged. Reloading clears the editing session. Source metadata is not preserved in exported PNGs; the processing pipeline uses SDR sRGB.
+
+Leave-page protection clears after PNG generation succeeds and the download starts. Browsers do not expose whether a later file-save dialog was canceled. The confirmation uses `beforeunload`, so browser interaction/permission rules apply; it does not save or recover the image session.
 
 Individual color bands and crop are upcoming milestones. The current interface contains only implemented controls.
 

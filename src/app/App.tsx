@@ -11,6 +11,7 @@ import { CurveEditor } from '../components/CurveEditor';
 import { PresetLibrary } from '../components/PresetLibrary';
 import { applyPresetPatch, createPreset, MAX_XMP_BYTES, type SavedPreset } from '../presets/xmp';
 import { loadPresets, savePreset, deletePreset } from '../presets/storage';
+import { useUnsavedEditWarning } from '../editor/unsaved';
 import { LatestRenderer } from '../editor/scheduler';
 import type { EngineApi, Frame, PhotoInfo, RenderMetrics } from '../worker/types';
 
@@ -22,6 +23,8 @@ export function App() {
   const [photo, setPhoto] = useState<Photo>();
   const [frame, setFrame] = useState<Frame>();
   const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
+  const [lastExportedKey, setLastExportedKey] = useState<string>();
+  useUnsavedEditWarning(!!photo, recipe, lastExportedKey);
   const history = useRef(new EditHistory(initialRecipe, recipeKey));
   const [, updateHistory] = useState(0);
   const [originalFrame, setOriginalFrame] = useState<Frame>();
@@ -144,6 +147,7 @@ export function App() {
       setOriginalFrame(loaded.frame);
       setMetrics(loaded.frame.metrics);
       history.current.reset(initialRecipe);
+      setLastExportedKey(undefined);
       setRecipe(initialRecipe);
       updateHistory(value => value + 1);
       setComparison(50);
@@ -206,6 +210,7 @@ export function App() {
 
   async function exportPhoto() {
     if (!api.current || !photo || busyRef.current) return;
+    const exportedKey = recipeKey(recipe);
     busyRef.current = true;
     setBusy('exporting');
     setError('');
@@ -223,6 +228,7 @@ export function App() {
       document.body.append(link);
       link.click();
       link.remove();
+      setLastExportedKey(exportedKey);
       setTimeout(() => { URL.revokeObjectURL(url); downloadUrls.current.delete(url); }, 60_000);
       setNotice('Your edited photo is ready.');
     } catch (failure) {
