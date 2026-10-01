@@ -72,6 +72,57 @@ test('comparison chrome hides away from the image and stays accessible by keyboa
   await expect(line).toHaveCSS('opacity', '0');
 });
 
+test('editing reveals comparison through a held drag and for one second after release', async ({ page }) => {
+  await page.clock.install({ time: 1_000_000_000_000 });
+  await openEdited(page);
+  await page.clock.pauseAt(1_000_000_060_000);
+  await page.mouse.move(0, 0);
+  const line = page.locator('.comparison-line');
+  await expect(line).toHaveCSS('opacity', '0');
+  const slider = page.getByRole('slider', { name: 'Exposure', exact: true });
+  const bounds = (await slider.boundingBox())!;
+  await page.mouse.move(bounds.x + bounds.width * 0.75, bounds.y + bounds.height / 2);
+  await page.mouse.down();
+  await expect(line).toHaveCSS('opacity', '1');
+  await page.clock.runFor(1500);
+  await expect(line).toHaveCSS('opacity', '1');
+  await page.mouse.up();
+  await page.clock.runFor(800);
+  await expect(line).toHaveCSS('opacity', '1');
+  await page.clock.runFor(250);
+  await expect(line).toHaveCSS('opacity', '0');
+  await expect(page.getByRole('slider', { name: 'Before and after comparison' })).toHaveAttribute('aria-valuenow', '50');
+});
+
+test('presets and subsequent edits restart the reveal timer, while new photos clear it', async ({ page }) => {
+  await page.clock.install({ time: 1_000_000_000_000 });
+  await openEdited(page);
+  await page.clock.pauseAt(1_000_000_060_000);
+  await page.mouse.move(0, 0);
+  const line = page.locator('.comparison-line');
+  await expect(line).toHaveCSS('opacity', '0');
+  const xmp = '<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/" crs:Name="Compare edits" crs:Exposure2012="2" /></rdf:RDF></x:xmpmeta>';
+  await page.getByLabel('Choose an XMP preset', { exact: true }).setInputFiles({ name: 'compare.xmp', mimeType: 'application/rdf+xml', buffer: Buffer.from(xmp) });
+  await expect(page.getByRole('spinbutton', { name: 'Exposure value' })).toHaveValue('2');
+  await expect(line).toHaveCSS('opacity', '1');
+  await page.clock.runFor(750);
+  await page.getByRole('spinbutton', { name: 'Contrast value' }).fill('25');
+  await page.getByRole('spinbutton', { name: 'Contrast value' }).press('Tab');
+  await page.clock.runFor(750);
+  await expect(line).toHaveCSS('opacity', '1');
+  await page.clock.runFor(300);
+  await expect(line).toHaveCSS('opacity', '0');
+  // Looking at a setting without changing its value must not restart the timer.
+  await page.getByRole('spinbutton', { name: 'Contrast value' }).focus();
+  await page.getByRole('spinbutton', { name: 'Contrast value' }).press('Tab');
+  await expect(line).toHaveCSS('opacity', '0');
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(line).toHaveCSS('opacity', '1');
+  await page.getByLabel('Choose a photo', { exact: true }).setInputFiles({ name: 'fresh.png', mimeType: 'image/png', buffer: makePng(200, 300) });
+  await expect(page.locator('[data-preview]')).toHaveAttribute('width', '200');
+  await expect(line).toHaveCSS('opacity', '0');
+});
+
 test.describe('touch comparison', () => {
   test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
   test('responds to touch without changing the edits', async ({ page }) => {

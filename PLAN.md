@@ -6,7 +6,7 @@ Build a useful photo editor that runs entirely in the browser, uses Rust/WebAsse
 
 **Status:** Milestones 0–8 are complete for the documented supported formats. Version 1.1.0 is deployed and live-verified at https://garyjx.github.io/still-photo-editor/. The repository/local folder rename and tagline update are complete. Unsupported Adobe camera/profile-table formats and real-device testing limits are explicitly documented.
 
-**Next action:** No requested implementation work remains. Preserve the release gates, stable preset identifiers, and documented format limits for future changes. Preset application semantics remain unchanged (the user asked for discussion only).
+**Next action:** Verify and publish comparison visibility during edits, with a one-second idle tail. Preserve the release gates, stable preset identifiers, and documented format limits for future changes. Preset application semantics remain unchanged (the user asked for discussion only).
 
 ## Product boundaries
 
@@ -244,6 +244,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-10-01 — Comparison while editing:** reveal the divider/handle/labels during actual adjustment gestures and for one second after release or the last committed change. Presets, numeric edits, framing, resets, and undo/redo share this presentation-only activity state. New photos clear it; lost window focus ends a held gesture. Hover, keyboard, and touch visibility still apply independently. The production build and focused WebKit comparison, adjustment, and curve checks pass, including clock-controlled tests of the held drag, one-second tail, timer restarts, preset application, no-op values, and photo replacement. A native range change event can precede release, so actual control pointer lifetime is tracked separately from history commits. Cross-browser CI and live verification are next.
 
 - **2026-10-01 — Version 1.1 deployed; rename outage resolved:** [run 36892524564](https://github.com/GaryJX/still-photo-editor/actions/runs/36892524564) passed 21 Rust tests, 15 frontend tests, and all 150 Chromium/Firefox/WebKit checks, then deployed `1c5b001`. The prebuilt browser image replaced the slow installation path without removing any release checks. Verified the bare public URL `https://garyjx.github.io/still-photo-editor/`: correct new-path HTML/assets, tagline, local photo import, expected edited pixels, hover-only comparison, native detail zoom, full-resolution PNG export, and cleared leave-page protection. No failed asset requests or page errors occurred. The new local folder and `origin` are verified; saved data identifiers remain compatible. Milestone 8 and the repository rename are complete. The old Pages URL should be replaced in bookmarks; reopen the new folder in editors/terminals.
 

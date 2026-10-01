@@ -22,6 +22,7 @@ import { SavePresetDialog, type SavePresetOptions } from '../components/SavePres
 import { presetPatch, serializeXmpPreset } from '../presets/export';
 import { applyPresetPatch, createPreset, MAX_XMP_BYTES, type SavedPreset } from '../presets/xmp';
 import { loadPresets, savePreset, deletePreset, loadLuts, saveLut } from '../presets/storage';
+import { useComparisonActivity } from '../editor/comparison-activity';
 import { useUnsavedEditWarning } from '../editor/unsaved';
 import { LatestRenderer } from '../editor/scheduler';
 import type { Frame, PhotoInfo, RenderMetrics } from '../worker/types';
@@ -46,6 +47,7 @@ export function App() {
   const originalGeometry = useRef('');
   const [cropSession, setCropSession] = useState<{ frame: Frame; initial: Crop; rotation: number }>();
   const [comparison, setComparison] = useState(50);
+  const comparisonActivity = useComparisonActivity();
   const [busy, setBusy] = useState<'opening' | 'exporting' | 'preset' | 'crop' | 'recovering' | 'save-preset' | 'look' | null>(null);
   const [presets, setPresets] = useState<SavedPreset[]>([]);
   const [luts, setLuts] = useState<LutAsset[]>([]);
@@ -77,6 +79,7 @@ export function App() {
     const client = new EngineClient(() => {
       if (epoch !== workerEpoch.current) return;
       workerEpoch.current++;
+      comparisonActivity.finish();
       scheduler.current?.invalidate();
       setError(sourceFile.current ? 'The image processor stopped. Your photo and edits are still here. Choose Recover editor to continue.' : 'The image processor could not start. Choose Recover editor to retry.');
       setReady(false); setBusy(null); setRendering(false); setCropSession(undefined); setExportDialog(false); setSavePresetDialog(false);
@@ -302,6 +305,7 @@ export function App() {
       setRecipe(initialRecipe);
       updateHistory(value => value + 1);
       setComparison(50);
+      comparisonActivity.reset();
     } catch (failure) {
       if (epoch !== workerEpoch.current) return;
       setError(`Couldn't open this photo. ${errorMessage(failure)}`);
@@ -325,8 +329,11 @@ export function App() {
 
   function applyRecipe(next: Recipe, transient = false) {
     if (busyRef.current || !photo || !ready) return;
+    const changed = recipeKey(next) !== recipeKey(history.current.current);
     if (transient) history.current.preview(next);
     else history.current.apply(next);
+    if (changed) comparisonActivity.change(transient);
+    else if (!transient) comparisonActivity.finish();
     presentRecipe();
   }
 
@@ -336,13 +343,16 @@ export function App() {
   }
 
   function commitGesture() {
+    comparisonActivity.finish();
     history.current.commit();
     updateHistory(value => value + 1);
   }
 
   function navigateHistory(direction: 'undo' | 'redo') {
     if (busyRef.current || !photo || !ready) return;
+    const previousKey = recipeKey(history.current.current);
     history.current[direction]();
+    if (recipeKey(history.current.current) !== previousKey) comparisonActivity.change();
     presentRecipe();
   }
 
@@ -470,7 +480,7 @@ export function App() {
           </div>
 
           <div class={`canvas-area ${photo ? 'loaded' : ''}`}>
-            {photo && frame && originalFrame ? <ComparisonPreview key={`${photo.id}:${frame.geometryKey}`} client={api.current} recipe={recipe} detailEnabled={ready && !busy && !rendering} frame={frame} original={originalFrame} name={photo.name} metrics={metrics} position={comparison} onPositionChange={setComparison} /> : <div class="empty-state">
+            {photo && frame && originalFrame ? <ComparisonPreview revealForEdit={comparisonActivity.visible} key={`${photo.id}:${frame.geometryKey}`} client={api.current} recipe={recipe} detailEnabled={ready && !busy && !rendering} frame={frame} original={originalFrame} name={photo.name} metrics={metrics} position={comparison} onPositionChange={setComparison} /> : <div class="empty-state">
               <div class="photo-illustration" aria-hidden="true"><div class="illustration-back" /><div class="illustration-front"><div class="illustration-sun" /><div class="illustration-hill hill-back" /><div class="illustration-hill hill-front" /><span class="illustration-spark">✦</span></div></div>
               <span class="eyebrow empty-eyebrow">A fresh point of view</span>
               <h1>Your photo.<br />A little brighter.</h1>

@@ -24,10 +24,10 @@ function DetailCanvas({ frame, region, kind }: { frame: Frame; region: DetailReg
     style={{ left: `${region.x / frame.outputWidth * 100}%`, top: `${region.y / frame.outputHeight * 100}%`, width: `${region.width / frame.outputWidth * 100}%`, height: `${region.height / frame.outputHeight * 100}%` }} />;
 }
 
-export function ComparisonPreview({ frame, original, name, metrics, position, onPositionChange, client, recipe, detailEnabled }: {
+export function ComparisonPreview({ frame, original, name, metrics, position, onPositionChange, client, recipe, detailEnabled, revealForEdit }: {
   frame: Frame; original: Frame; name: string; metrics?: RenderMetrics;
   position: number; onPositionChange: (position: number) => void;
-  client?: EngineClient; recipe: Recipe; detailEnabled: boolean;
+  client?: EngineClient; recipe: Recipe; detailEnabled: boolean; revealForEdit: boolean;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const divider = useRef<HTMLDivElement>(null);
@@ -134,7 +134,7 @@ export function ComparisonPreview({ frame, original, name, metrics, position, on
   return <div class="image-viewer">
     <div ref={viewport} class="photo-frame comparison-preview" role="group" aria-label="Image zoom and pan" aria-describedby="zoom-help"
       tabIndex={zoomed ? 0 : -1} data-zoom={view.zoom} data-pan-x={view.x} data-pan-y={view.y}
-      data-keyboard-focus={keyboardFocus} data-interacting={interacting} data-zoomed={zoomed}
+      data-editing={revealForEdit} data-keyboard-focus={keyboardFocus} data-interacting={interacting} data-zoomed={zoomed}
       style={{ '--comparison': `${position}%`, '--image-ratio': frame.outputWidth / frame.outputHeight, '--source-width': `${frame.outputWidth}px` }}
       onPointerDown={event => {
         if (event.button !== 0 || pointers.current.size >= 2) return;

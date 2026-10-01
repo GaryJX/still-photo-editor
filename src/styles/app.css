@@ -94,6 +94,9 @@ svg { flex-shrink: 0; }
 .comparison-label-original { left: 12px; }
 .comparison-label-edited { right: 12px; }
 .comparison-line, .comparison-handle, .comparison-label { opacity: 0; }
+.comparison-preview[data-editing="true"] .comparison-line,
+.comparison-preview[data-editing="true"] .comparison-handle,
+.comparison-preview[data-editing="true"] .comparison-label,
 .comparison-preview[data-interacting="true"] .comparison-line,
 .comparison-preview[data-interacting="true"] .comparison-handle,
 .comparison-preview:hover .comparison-line,

@@ -38,7 +38,7 @@ The roadmap is implemented for the documented supported formats. See the compati
 
 Use **Save as preset** to keep the current look in this browser, download it as XMP, or both. You can select light, color, curves, and color-mix groups; crop and rotation are excluded.
 
-The comparison divider and labels appear while hovering over the photo or using the keyboard. Touch-only devices keep them visible so the control stays discoverable. Moving away hides the controls while keeping your chosen split.
+The comparison divider and labels appear while hovering over the photo, using the keyboard, or making edits. They stay visible throughout an adjustment gesture and for about one second after the last edit or preset application. Touch-only devices keep them visible so the control stays discoverable. Moving away hides the controls while keeping your chosen split.
 
 Use **+ / −**, the mouse wheel over the photo, or a two-finger touch pinch to zoom. **100%** shows one source pixel per CSS screen pixel; **Fit** returns to the whole photo. When zoomed, drag the photo to pan and drag the divider to compare. Keyboard users can focus the zoomed image and use arrow keys to pan, +/− to zoom, and 0 to fit. Zoom ranges from Fit to 400%; a new photo, crop, or rotation resets the view. Scroll outside the image to move the page; Ctrl/Cmd-wheel keeps browser zoom.
 
