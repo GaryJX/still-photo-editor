@@ -23,7 +23,7 @@ Defer RAW/HEIC development, arbitrary-angle straightening, layers, brushes, mask
 - **Primary controls:** Exposure, Contrast, Warmth, Tint, and Color intensity. Color intensity maps to saturation; explain this in a short tooltip. Show reset controls and sensible defaults.
 - **Advanced controls:** expandable Curves and Color sections containing vibrance, RGB curves, and HSL bands. Do not render nonfunctional sliders for deferred features.
 - **Presets:** an obvious “Import preset” action and a small saved-preset list. Dropping an XMP onto an open image applies it; importing before a photo saves it for later selection.
-- **Compare:** a pointer/keyboard accessible “Show original” toggle using matching crop and orientation, with a clear indication while the original is displayed.
+- **Compare:** a draggable divider centered on each new photo, showing the original on the left and edits on the right. Support touch, arrow keys, Home/End, a recenter button, and a “Show original” shortcut. Moving the divider changes only the preview presentation, never the edit recipe or export.
 - **History:** visible Undo/Redo and Reset edits. One slider gesture, curve drag, crop commit, or preset application produces one history entry.
 - **Export:** one primary button, followed by a small format/quality dialog. Show progress and keep failures recoverable.
 - **Responsive layout:** side panel on desktop, collapsible panel beneath the canvas on narrow screens. Keep the image usable while controls are open.
@@ -136,7 +136,7 @@ If storage is unavailable or full, keep the preset usable for the current sessio
 - [ ] Implement contrast, warmth/tint, saturation/vibrance, master/RGB curves, and HSL bands.
 - [ ] Implement normalized crop and 90-degree rotation with preview/export agreement.
 - [ ] Add recipe history, grouped slider gestures, per-control reset, and reset-all.
-- [ ] Add before/after comparison using matching geometry.
+- [x] Add before/after comparison using matching geometry. A centered, draggable divider now reveals cached original/edited previews; future crop/rotation must transform both consistently.
 - [ ] Verify identity settings, exposure math, curve endpoints, neutral color behavior, alpha handling, and operation-order fixtures.
 
 **Exit condition:** the editing controls produce stable, reversible results, with a shared renderer for preview and export.
@@ -201,8 +201,11 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Use Rust release optimization without the optional `wasm-opt` step | Binaryen download failed; the 25.9 kB engine builds and meets the initial measured preview target with the existing compiler |
 | 2026-09-30 | Record the first browser baseline in WebKit | WebKit runs normally here; Chromium and Firefox launch failures prevent claiming their coverage |
 | 2026-09-30 | Publish the current milestone through GitHub Pages and license the project under MIT | User requested a shareable test site; deployment runs after successful build/unit checks on pushes to `main` |
+| 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-09-30 — Before/after divider:** added a split preview starting at 50%, original left / edited right, with pointer capture, touch support, keyboard arrows/Home/End, recentering, and original-view shortcut. Comparison reuses cached previews, preserves the divider while editing, resets on a new photo, and leaves exports unchanged. Production build and seven functional WebKit checks passed under the Pages project path, including rendered-pixel checks at the midpoint and both endpoints.
 
 - **2026-09-30 — Planning:** created the local repository, checked the available toolchain, and recorded product scope, architecture, milestone gates, and XMP behavior. No application code or runtime tests yet.
 - **2026-09-30 — Milestone 1:** built the Preact interface, Rust/WASM worker, immutable image storage, latest-request scheduler, exposure, comparison/reset, PNG export, local-only drag/drop, and JPEG orientation handling. Added a responsive neutral interface with a working exposure control and no placeholder advanced controls.

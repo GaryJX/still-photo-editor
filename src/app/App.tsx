@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { transfer, wrap, type Remote } from 'comlink';
 import { Icon } from '../components/Icon';
+import { ComparisonPreview } from '../components/ComparisonPreview';
 import { decodeOnMain, encodeOnMain, validatePhoto } from '../editor/image';
 import { exposureRecipe, initialRecipe, type Recipe } from '../editor/recipe';
 import { LatestRenderer } from '../editor/scheduler';
@@ -14,14 +15,14 @@ export function App() {
   const [photo, setPhoto] = useState<Photo>();
   const [frame, setFrame] = useState<Frame>();
   const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
-  const [original, setOriginal] = useState(false);
+  const [originalFrame, setOriginalFrame] = useState<Frame>();
+  const [comparison, setComparison] = useState(50);
   const [busy, setBusy] = useState<'opening' | 'exporting' | null>(null);
   const [rendering, setRendering] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [dragging, setDragging] = useState(false);
   const [metrics, setMetrics] = useState<RenderMetrics>();
-  const canvas = useRef<HTMLCanvasElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const api = useRef<Remote<EngineApi> | undefined>(undefined);
   const scheduler = useRef<LatestRenderer<Recipe, Frame> | undefined>(undefined);
@@ -52,15 +53,6 @@ export function App() {
     };
   }, []);
 
-  useLayoutEffect(() => {
-    if (!frame || !canvas.current) return;
-    const ctx = canvas.current.getContext('2d', { colorSpace: 'srgb' });
-    if (!ctx) { setError('Your browser could not display the preview.'); return; }
-    canvas.current.width = frame.width;
-    canvas.current.height = frame.height;
-    ctx.putImageData(new ImageData(new Uint8ClampedArray(frame.pixels.buffer as ArrayBuffer), frame.width, frame.height), 0, 0);
-  }, [frame]);
-
   async function openPhoto(file: File) {
     if (busyRef.current || !api.current || !ready) return;
     try { validatePhoto(file); }
@@ -79,14 +71,15 @@ export function App() {
       }
       setPhoto({ ...loaded.info, name: file.name });
       setFrame(loaded.frame);
+      setOriginalFrame(loaded.frame);
       setMetrics(loaded.frame.metrics);
       setRecipe(initialRecipe);
-      setOriginal(false);
+      setComparison(50);
     } catch (failure) {
       setError(`Couldn't open this photo. ${errorMessage(failure)}`);
       if (photo) {
         setRendering(true);
-        scheduler.current?.request(original ? initialRecipe : recipe);
+        scheduler.current?.request(recipe);
       }
     } finally {
       busyRef.current = false;
@@ -98,17 +91,9 @@ export function App() {
     if (!Number.isFinite(value) || busyRef.current || !photo) return;
     const next = exposureRecipe(value);
     setRecipe(next);
-    setOriginal(false);
     setRendering(true);
     setNotice('');
     scheduler.current?.request(next);
-  }
-
-  function compare() {
-    const next = !original;
-    setOriginal(next);
-    setRendering(true);
-    scheduler.current?.request(next ? initialRecipe : recipe);
   }
 
   async function exportPhoto() {
@@ -180,13 +165,7 @@ export function App() {
           </div>
 
           <div class={`canvas-area ${photo ? 'loaded' : ''}`}>
-            {photo ? <div class="photo-frame">
-              <canvas ref={canvas} aria-label={`Preview of ${photo.name}`}
-                data-exposure={frame?.exposure} data-render-ms={frame?.metrics.renderMs}
-                data-wasm-bytes={metrics?.wasmMemoryBytes} data-retained-bytes={metrics?.retainedBytes}
-                style={{ aspectRatio: `${photo.previewWidth} / ${photo.previewHeight}` }} />
-              {original && <span class="original-label">Original</span>}
-            </div> : <div class="empty-state">
+            {photo && frame && originalFrame ? <ComparisonPreview frame={frame} original={originalFrame} name={photo.name} metrics={metrics} position={comparison} onPositionChange={setComparison} /> : <div class="empty-state">
               <div class="photo-illustration" aria-hidden="true"><div class="illustration-back" /><div class="illustration-front"><div class="illustration-sun" /><div class="illustration-hill hill-back" /><div class="illustration-hill hill-front" /><span class="illustration-spark">✦</span></div></div>
               <span class="eyebrow empty-eyebrow">A fresh point of view</span>
               <h1>Your photo.<br />A little brighter.</h1>
@@ -199,7 +178,7 @@ export function App() {
 
           <div class="stage-footer">
             <div class="photo-caption">{photo ? <><span class="photo-name" title={photo.name}>{photo.name}</span><span class="dimensions">{photo.width.toLocaleString()} × {photo.height.toLocaleString()}</span></> : <span>Open. Adjust. Make it yours.</span>}</div>
-            {photo && <button class={`button button-small ${original ? 'button-selected' : 'button-quiet'}`} disabled={disabled} aria-pressed={original} onClick={compare}>Show original</button>}
+            {photo && <div class="comparison-actions"><button class="button button-small button-quiet" disabled={disabled || comparison === 50} onClick={() => setComparison(50)}>Split view</button><button class={`button button-small ${comparison === 100 ? 'button-selected' : 'button-quiet'}`} disabled={disabled} aria-pressed={comparison === 100} onClick={() => setComparison(comparison === 100 ? 0 : 100)}>Show original</button></div>}
           </div>
         </section>
 

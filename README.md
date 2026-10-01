@@ -14,7 +14,8 @@ Milestone 1 is implemented. The first working slice, branded **Still** in the in
 
 - Open or drop a JPEG, PNG, or WebP photo.
 - Adjust exposure from −4 to +4 EV, with a responsive preview.
-- Compare with the original and reset the adjustment.
+- Drag a centered before/after divider: original on the left, edits on the right. Move fully left for all edits or fully right for the original. Touch, arrow keys, Home/End, and a recenter button are supported.
+- Reset the adjustment without changing the original photo.
 - Export a full-size PNG while preserving transparency.
 - Use the editor on desktop or a narrow screen, with keyboard-accessible controls.
 

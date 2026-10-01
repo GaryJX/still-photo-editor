@@ -63,6 +63,18 @@ svg { flex-shrink: 0; }
 .photo-frame { position: relative; display: flex; align-items: center; justify-content: center; max-width: 100%; }
 .photo-frame canvas { display: block; max-width: 100%; max-height: calc(100dvh - 330px); width: auto; height: auto; object-fit: contain; box-shadow: 0 8px 30px #30372b17; background-color: #fff; background-image: conic-gradient(#ececec 25%, transparent 0 50%, #ececec 0 75%, transparent 0); background-size: 16px 16px; }
 .original-label { position: absolute; top: 12px; left: 12px; color: #fff; background: #202820bb; padding: 6px 10px; border-radius: 5px; font-size: 11px; pointer-events: none; }
+.comparison-preview { isolation: isolate; }
+.comparison-original-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.comparison-original-layer canvas { width: 100%; height: 100%; max-height: none; max-width: none; box-shadow: none; }
+.comparison-interaction { position: absolute; inset: 0; cursor: ew-resize; touch-action: pan-y; user-select: none; }
+.comparison-interaction:focus-visible { outline: 3px solid #91a882; outline-offset: 5px; }
+.comparison-line { position: absolute; top: 0; bottom: 0; left: var(--comparison); width: 2px; transform: translateX(-1px); background: white; box-shadow: 0 0 4px #0006; pointer-events: none; }
+.comparison-handle { position: absolute; top: 50%; left: clamp(18px, var(--comparison), calc(100% - 18px)); transform: translate(-50%, -50%); display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #fff; color: #53644d; box-shadow: 0 2px 12px #0003; pointer-events: none; }
+.comparison-label { position: absolute; top: 12px; padding: 6px 10px; color: #fff; background: #202820bb; border-radius: 5px; font-size: 11px; pointer-events: none; }
+.comparison-label-original { left: 12px; }
+.comparison-label-edited { right: 12px; }
+.comparison-actions { display: flex; gap: 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .controls { padding: 32px 25px 0; border-left: 1px solid var(--line); display: flex; flex-direction: column; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 30px; }
 .panel-heading .eyebrow { font-size: 8px; }

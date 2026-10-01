@@ -18,7 +18,7 @@ Current import limits are 60 MiB compressed, 40 megapixels decoded, and 16,384 p
 }
 ```
 
-Exposure is an absolute EV value in [-4, +4]. A +1 EV setting multiplies linear-light RGB by two. The source remains unchanged, and each render recomputes from it. Comparison renders zero exposure; exporting still uses the current edit even while the original is displayed.
+Exposure is an absolute EV value in [-4, +4]. A +1 EV setting multiplies linear-light RGB by two. The source remains unchanged, and each render recomputes from it. Comparison clips a cached zero-exposure preview over the edited preview, with the original on the left. Moving the divider does not invoke the engine. Exporting still uses the current edit even while the original is displayed.
 
 For each color channel:
 
