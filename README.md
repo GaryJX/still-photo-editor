@@ -88,7 +88,7 @@ See [docs/processing.md](docs/processing.md) for the processing contract and [do
 
 The repository is [GaryJX/wasm-image-editor](https://github.com/GaryJX/wasm-image-editor). The site URL is **https://garyjx.github.io/wasm-image-editor/**.
 
-The [Pages workflow](.github/workflows/pages.yml) tests the engine and scheduler, builds Rust/WASM and the interface, and deploys the generated `dist/` artifact. Build output stays out of Git. The workflow reads the Pages base path so JavaScript, WASM, icons, and navigation work under the project URL.
+The [Pages workflow](.github/workflows/pages.yml) tests the engine and scheduler, builds Rust/WASM and the interface, and runs Chromium, Firefox, and WebKit workflows (including accessibility checks) before deploying the generated `dist/` artifact. Build output stays out of Git. The workflow reads the Pages base path so JavaScript, WASM, icons, and navigation work under the project URL.
 
 For the initial setup:
 

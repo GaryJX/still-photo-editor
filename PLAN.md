@@ -4,7 +4,7 @@
 
 Build a useful photo editor that runs entirely in the browser, uses Rust/WebAssembly for processing, and makes editing approachable for beginners. A user should be able to open a photo, apply an XMP preset or adjust a few controls, compare the result, and download the edited image.
 
-**Status:** Milestones 0–3 are implemented, including HSL and crop/rotation. Dark mode and unsaved-edit protection are published. Milestones 4–5 are next, followed by XMP export (6) and `Look`/profile compatibility (7). The user explicitly requested completing the entire roadmap and publishing each tested milestone.
+**Status:** Milestones 0–4 are implemented, including HSL, crop/rotation, export formats, recovery, and responsive controls. Dark mode and unsaved-edit protection are published. Release validation (Milestone 5) is in progress, followed by XMP export (6) and `Look`/profile compatibility (7). The user explicitly requested completing the entire roadmap and publishing each tested milestone.
 
 **Next action:** Run cross-browser release validation, fix findings, then implement XMP export and the feasible `Look`/profile subset. Then implement XMP export and the feasible `Look`/profile subset. Do not stop after a partial milestone unless a concrete external dependency blocks further progress.
 
@@ -236,6 +236,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-09-30 — Release checks started:** added Chromium/Firefox/WebKit browser gates before Pages deployment, retained failure artifacts, and pinned the CI runner to Ubuntu 24.04. Added automated WCAG A/AA checks for light/dark empty and loaded views plus crop/export dialogs. The checks identified low-contrast light-theme labels, which were corrected; both local accessibility workflows now pass. Cross-browser CI results are pending.
 
 - **2026-09-30 — Recovery and mobile workflow:** introduced a worker client that rejects pending RPCs on failure, a retained source file and generation guards for safe recovery, and a Recover editor action that preserves edits/history. Added a collapsible mobile controls panel that stays expanded on desktop. Production build and 29 WebKit workflows passed, with the unsupported native WebP encoder check skipped. Recovery was tested by terminating a simulated failed worker and restoring the edited pixels/history.
 
