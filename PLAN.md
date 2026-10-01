@@ -4,9 +4,9 @@
 
 Build a useful photo editor that runs entirely in the browser, uses Rust/WebAssembly for processing, and makes editing approachable for beginners. A user should be able to open a photo, apply an XMP preset or adjust a few controls, compare the result, and download the edited image.
 
-**Status:** Milestones 0–7 are complete for the documented supported formats. Version 1.0.0 is deployed and live-verified. Unsupported Adobe camera/profile-table formats and real-device testing limits are explicitly documented.
+**Status:** Milestones 0–8 are complete for the documented supported formats. Version 1.1.0 is deployed and live-verified at https://garyjx.github.io/still-photo-editor/. The repository/local folder rename and tagline update are complete. Unsupported Adobe camera/profile-table formats and real-device testing limits are explicitly documented.
 
-**Next action:** Finish the zoom/pan browser release gate, rename the local/GitHub repository to `still-photo-editor`, and verify Pages at its new URL. Preset application semantics remain unchanged (the user asked for discussion only).
+**Next action:** No requested implementation work remains. Preserve the release gates, stable preset identifiers, and documented format limits for future changes. Preset application semantics remain unchanged (the user asked for discussion only).
 
 ## Product boundaries
 
@@ -207,13 +207,13 @@ Requested by the user after encountering unsupported `Look` settings in real pre
 
 **Exit condition:** feasible look types are supported and tested; unresolved or unavailable profile dependencies receive actionable compatibility messages. Broader Adobe rendering parity is not assumed.
 
-### 8. Inspect the image — in progress
+### 8. Inspect the image — complete
 
 - [x] Hide comparison chrome away from the image; reveal on hover, keyboard focus, and touch-only devices.
 - [x] Add zoom, 100%, Fit, and bounded pan with aligned original/edited views.
 - [x] Render bounded detail regions from the original pixels in the worker, with stale-result protection.
 - [x] Verify view changes leave edits, history, exports, and leave warnings unchanged; reset the view for a new photo or geometry.
-- [ ] Verify mouse, keyboard, touch, responsive layout, and cross-browser deployment.
+- [x] Verify mouse, keyboard, touch, responsive layout, and cross-browser deployment.
 
 ## Performance targets and verification
 
@@ -244,6 +244,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-10-01 — Version 1.1 deployed; rename outage resolved:** [run 36892524564](https://github.com/GaryJX/still-photo-editor/actions/runs/36892524564) passed 21 Rust tests, 15 frontend tests, and all 150 Chromium/Firefox/WebKit checks, then deployed `1c5b001`. The prebuilt browser image replaced the slow installation path without removing any release checks. Verified the bare public URL `https://garyjx.github.io/still-photo-editor/`: correct new-path HTML/assets, tagline, local photo import, expected edited pixels, hover-only comparison, native detail zoom, full-resolution PNG export, and cleared leave-page protection. No failed asset requests or page errors occurred. The new local folder and `origin` are verified; saved data identifiers remain compatible. Milestone 8 and the repository rename are complete. The old Pages URL should be replaced in bookmarks; reopen the new folder in editors/terminals.
 
 - **2026-10-01 — Rename outage and CI setup delay:** the new Pages URL initially served the old artifact, whose `/wasm-image-editor/` JavaScript and stylesheet URLs return 404. The new-path build passes 49 local WebKit checks but publishing waited more than ten minutes on Ubuntu browser dependency downloads. Moving browser checks to the official Playwright 1.63.0 Noble image, with the same complete Chromium/Firefox/WebKit gate, and passing the host-built artifact to that job. The new workflow group lets this replacement pipeline start while the old installation finishes; both commits contain the same corrected application. Verify the published HTML, worker/WASM assets, edits, zoom, and export before calling the outage resolved.
 

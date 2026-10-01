@@ -37,3 +37,9 @@ See [processing.md](processing.md), [xmp-support.md](xmp-support.md), and [perfo
 [Run 36828323891](https://github.com/GaryJX/still-photo-editor/actions/runs/36828323891) passed 19 Rust tests, 13 frontend tests, and 138 browser checks across Chromium, Firefox, and WebKit, and deployed the release. The live Pages site was then exercised with a local image, a cube LUT, an XMP save/re-import round-trip, PNG export, and leave-page state checks. No failed assets or page errors occurred in that live verification.
 
 The final Look/LUT tests include storage migration, fixed/zero amounts, missing/matching files, worker recovery, precision metadata, and accessibility. Unsupported Adobe formats remain a documented compatibility boundary, not an unverified claim of support.
+
+## Version 1.1 result
+
+[Run 36892524564](https://github.com/GaryJX/still-photo-editor/actions/runs/36892524564) passed 21 Rust tests, 15 frontend tests, and all 150 browser checks, then deployed commit `1c5b001` to the renamed Pages URL. A fresh WebKit session verified the public URL, correct JavaScript/WASM loading, hover visibility, original-resolution detail, edited pixel values, full-resolution PNG download, and export/leave-warning state. No page errors or failed asset requests occurred.
+
+Renaming the repository temporarily exposed the old published artifact at the new URL; its old absolute asset paths returned 404. The corrected new-path deployment resolved this. Browser checks now run in the official version-matched Playwright Noble container to avoid the slow operating-system dependency installation that prolonged that outage. Both native/unit checks and the complete three-browser gate remain required before publishing.
