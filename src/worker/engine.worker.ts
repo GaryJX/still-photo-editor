@@ -46,6 +46,7 @@ function render(recipe: Recipe, fullResolution = false): Frame {
 }
 
 const api: EngineApi = {
+  async ready() { await wasm; },
   async open(file) {
     if (typeof OffscreenCanvas === 'undefined' || typeof createImageBitmap === 'undefined') return 'decode-on-main';
     let bitmap: ImageBitmap;

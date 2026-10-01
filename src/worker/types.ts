@@ -41,6 +41,7 @@ export interface ExportedPhoto {
 }
 
 export interface EngineApi {
+  ready(): Promise<void>;
   open(file: File): Promise<LoadedPhoto | 'decode-on-main'>;
   openDecoded(photo: DecodedPhoto): Promise<LoadedPhoto>;
   render(recipe: Recipe, knownOriginalGeometry?: string): Frame;

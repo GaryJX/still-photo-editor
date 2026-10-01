@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { transfer, wrap, type Remote } from 'comlink';
+import { transfer } from 'comlink';
+import { EngineClient } from '../editor/engine-client';
 import { Icon } from '../components/Icon';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { ComparisonPreview } from '../components/ComparisonPreview';
@@ -19,7 +20,7 @@ import { applyPresetPatch, createPreset, MAX_XMP_BYTES, type SavedPreset } from 
 import { loadPresets, savePreset, deletePreset } from '../presets/storage';
 import { useUnsavedEditWarning } from '../editor/unsaved';
 import { LatestRenderer } from '../editor/scheduler';
-import type { EngineApi, Frame, PhotoInfo, RenderMetrics } from '../worker/types';
+import type { Frame, PhotoInfo, RenderMetrics } from '../worker/types';
 
 type Photo = PhotoInfo & { name: string };
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
@@ -40,7 +41,7 @@ export function App() {
   const originalGeometry = useRef('');
   const [cropSession, setCropSession] = useState<{ frame: Frame; initial: Crop; rotation: number }>();
   const [comparison, setComparison] = useState(50);
-  const [busy, setBusy] = useState<'opening' | 'exporting' | 'preset' | 'crop' | null>(null);
+  const [busy, setBusy] = useState<'opening' | 'exporting' | 'preset' | 'crop' | 'recovering' | null>(null);
   const [presets, setPresets] = useState<SavedPreset[]>([]);
   const [presetReport, setPresetReport] = useState<SavedPreset>();
   const [storageNotice, setStorageNotice] = useState('');
@@ -51,34 +52,68 @@ export function App() {
   const [dragging, setDragging] = useState(false);
   const [metrics, setMetrics] = useState<RenderMetrics>();
   const input = useRef<HTMLInputElement>(null);
-  const api = useRef<Remote<EngineApi> | undefined>(undefined);
+  const api = useRef<EngineClient | undefined>(undefined);
+  const sourceFile = useRef<File | undefined>(undefined);
+  const workerEpoch = useRef(0);
+  const [controlsCollapsed, setControlsCollapsed] = useState(false);
   const scheduler = useRef<LatestRenderer<Recipe, Frame> | undefined>(undefined);
   const busyRef = useRef(false);
   const dragDepth = useRef(0);
   const downloadUrls = useRef(new Set<string>());
 
-  useEffect(() => {
-    const worker = new Worker(new URL('../worker/engine.worker.ts', import.meta.url), { type: 'module' });
-    api.current = wrap<EngineApi>(worker);
-    scheduler.current = new LatestRenderer(
-      (next) => api.current!.render(next, originalGeometry.current),
-      (result) => { if (result.original) { setOriginalFrame(result.original); originalGeometry.current = result.geometryKey; } setFrame(result); setMetrics(result.metrics); setRendering(false); },
-      (failure) => { setError(errorMessage(failure)); setRendering(false); },
-    );
-    worker.addEventListener('error', () => {
-      setError('The editor stopped unexpectedly. Reload this page to open your photo again.');
-      setReady(false);
-      setBusy(null);
-      setRendering(false);
+  function startEngine() {
+    scheduler.current?.dispose();
+    api.current?.dispose();
+    const epoch = ++workerEpoch.current;
+    const client = new EngineClient(() => {
+      if (epoch !== workerEpoch.current) return;
+      workerEpoch.current++;
+      scheduler.current?.invalidate();
+      setError(sourceFile.current ? 'The image processor stopped. Your photo and edits are still here. Choose Recover editor to continue.' : 'The image processor could not start. Choose Recover editor to retry.');
+      setReady(false); setBusy(null); setRendering(false); setCropSession(undefined); setExportDialog(false);
       busyRef.current = false;
     });
+    api.current = client;
+    scheduler.current = new LatestRenderer(
+      next => client.render(next, originalGeometry.current),
+      result => { if (result.original) { setOriginalFrame(result.original); originalGeometry.current = result.geometryKey; } setFrame(result); setMetrics(result.metrics); setRendering(false); },
+      failure => { if (epoch === workerEpoch.current) { setError(errorMessage(failure)); setRendering(false); } },
+    );
+    return { client, epoch };
+  }
+
+  useEffect(() => {
+    const { client } = startEngine();
     setReady(true);
+    void client.ready().catch(() => {});
     return () => {
-      scheduler.current?.dispose();
-      worker.terminate();
+      workerEpoch.current++;
+      scheduler.current?.dispose(); api.current?.dispose();
       for (const url of downloadUrls.current) URL.revokeObjectURL(url);
     };
   }, []);
+
+  async function recoverEditor() {
+    if (busyRef.current) return;
+    busyRef.current = true; setBusy('recovering'); setError(''); setReady(false);
+    const { client, epoch } = startEngine();
+    try {
+      await client.ready();
+      if (sourceFile.current) {
+        let loaded = await client.open(sourceFile.current);
+        if (loaded === 'decode-on-main') {
+          const decoded = await decodeOnMain(sourceFile.current);
+          loaded = await client.openDecoded(transfer(decoded, [decoded.pixels.buffer as ArrayBuffer, decoded.previewPixels.buffer as ArrayBuffer]));
+        }
+        const restored = await client.render(history.current.current);
+        if (epoch !== workerEpoch.current) return;
+        setFrame(restored); setMetrics(restored.metrics); setOriginalFrame(restored.original ?? loaded.frame); originalGeometry.current = restored.geometryKey;
+      }
+      if (epoch === workerEpoch.current) { setReady(true); setNotice('Your photo and edits have been restored.'); }
+    } catch (failure) {
+      if (epoch === workerEpoch.current) setError(`Could not recover the editor. ${errorMessage(failure)}`);
+    } finally { if (epoch === workerEpoch.current) { busyRef.current = false; setBusy(null); } }
+  }
 
   useEffect(() => {
     let active = true;
@@ -143,6 +178,7 @@ export function App() {
 
   async function openPhoto(file: File) {
     if (busyRef.current || !api.current || !ready) return;
+    const epoch = workerEpoch.current;
     try { validatePhoto(file); }
     catch (failure) { setError(errorMessage(failure)); return; }
     busyRef.current = true;
@@ -157,6 +193,8 @@ export function App() {
         const decoded = await decodeOnMain(file);
         loaded = await api.current.openDecoded(transfer(decoded, [decoded.pixels.buffer as ArrayBuffer, decoded.previewPixels.buffer as ArrayBuffer]));
       }
+      if (epoch !== workerEpoch.current) return;
+      sourceFile.current = file;
       setPhoto({ ...loaded.info, name: file.name });
       setFrame(loaded.frame);
       setOriginalFrame(loaded.frame);
@@ -168,14 +206,14 @@ export function App() {
       updateHistory(value => value + 1);
       setComparison(50);
     } catch (failure) {
+      if (epoch !== workerEpoch.current) return;
       setError(`Couldn't open this photo. ${errorMessage(failure)}`);
       if (photo) {
         setRendering(true);
         scheduler.current?.request(recipe);
       }
     } finally {
-      busyRef.current = false;
-      setBusy(null);
+      if (epoch === workerEpoch.current) { busyRef.current = false; setBusy(null); }
     }
   }
 
@@ -216,16 +254,17 @@ export function App() {
       if (!(event.metaKey || event.ctrlKey) || event.altKey || event.key.toLowerCase() !== 'z') return;
       const target = event.target;
       if (target instanceof HTMLElement && (target.isContentEditable || target instanceof HTMLTextAreaElement || (target instanceof HTMLInputElement && target.type !== 'range'))) return;
-      if (!photo || busyRef.current || !ready) return;
+      if (!photo || busyRef.current || !ready || exportDialog) return;
       event.preventDefault();
       navigateHistory(event.shiftKey ? 'redo' : 'undo');
     }
     window.addEventListener('keydown', shortcut);
     return () => window.removeEventListener('keydown', shortcut);
-  }, [photo, ready]);
+  }, [photo, ready, exportDialog]);
 
   async function openCrop() {
     if (!api.current || !photo || busyRef.current || !ready) return;
+    const epoch = workerEpoch.current;
     commitGesture();
     scheduler.current?.invalidate();
     busyRef.current = true; setBusy('crop'); setError(''); setRendering(false);
@@ -233,10 +272,11 @@ export function App() {
       const current = history.current.current;
       const fullGeometry = { crop: fullCrop(), rotation: current.geometry.rotation };
       const cropFrame = await api.current.render({ ...current, geometry: fullGeometry }, geometryKey(fullGeometry));
+      if (epoch !== workerEpoch.current) return;
       setCropSession({ frame: cropFrame, initial: displayCrop(current.geometry.crop, current.geometry.rotation), rotation: current.geometry.rotation });
     } catch (failure) {
-      busyRef.current = false; setError(errorMessage(failure)); presentRecipe();
-    } finally { setBusy(null); }
+      if (epoch === workerEpoch.current) { busyRef.current = false; setError(errorMessage(failure)); presentRecipe(); }
+    } finally { if (epoch === workerEpoch.current) setBusy(null); }
   }
 
   function closeCrop(selection?: Crop) {
@@ -256,6 +296,7 @@ export function App() {
 
   async function exportPhoto(options: ExportOptions) {
     if (!api.current || !photo || busyRef.current) return;
+    const epoch = workerEpoch.current;
     const exportedKey = recipeKey(recipe);
     busyRef.current = true;
     setBusy('exporting');
@@ -265,6 +306,7 @@ export function App() {
       // Export the current edits even when the comparison view shows the original.
       const result = await api.current.exportImage(recipe, options);
       const blob = result.blob ?? await encodeOnMain(result.frame!.pixels, result.frame!.width, result.frame!.height, options);
+      if (epoch !== workerEpoch.current) return;
       setMetrics(result.metrics);
       const url = URL.createObjectURL(blob);
       downloadUrls.current.add(url);
@@ -280,15 +322,14 @@ export function App() {
       setTimeout(() => { URL.revokeObjectURL(url); downloadUrls.current.delete(url); }, 60_000);
       setNotice('Your edited photo is ready.');
     } catch (failure) {
-      setError(`Couldn't export this photo. ${errorMessage(failure)}`);
+      if (epoch === workerEpoch.current) setError(`Couldn't export this photo. ${errorMessage(failure)}`);
     } finally {
-      busyRef.current = false;
-      setBusy(null);
+      if (epoch === workerEpoch.current) { busyRef.current = false; setBusy(null); }
     }
   }
 
   const disabled = !photo || !!busy || !ready || !!cropSession;
-  const status = busy === 'opening' ? 'Opening your photo…' : busy === 'exporting' ? 'Preparing your full-size image…' : busy === 'preset' ? 'Reading your preset…' : busy === 'crop' ? 'Preparing crop preview…' : rendering ? 'Updating preview…' : notice;
+  const status = busy === 'opening' ? 'Opening your photo…' : busy === 'exporting' ? 'Preparing your full-size image…' : busy === 'preset' ? 'Reading your preset…' : busy === 'crop' ? 'Preparing crop preview…' : busy === 'recovering' ? 'Recovering your photo and edits…' : rendering ? 'Updating preview…' : notice;
 
   return (
     <div class="app-shell"
@@ -320,7 +361,7 @@ export function App() {
 
       <input ref={presetInput} class="file-input" type="file" accept=".xmp,application/rdf+xml" aria-label="Choose an XMP preset" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void importPreset(file); event.currentTarget.value = ''; }} />
 
-      {error && <div class="error-banner" role="alert"><span>{error}</span><button class="icon-button" aria-label="Dismiss error" onClick={() => setError('')}><Icon name="close" size={18} /></button></div>}
+      {error && <div class="error-banner" role="alert"><span>{error}</span>{!ready && <button class="button button-small button-quiet" disabled={!!busy} onClick={() => void recoverEditor()}>Recover editor</button>}<button class="icon-button" aria-label="Dismiss error" onClick={() => setError('')}><Icon name="close" size={18} /></button></div>}
 
       <main class={`workspace ${photo ? 'has-photo' : ''}`}>
         <section class="stage" aria-label="Photo preview" aria-busy={!!busy || rendering}>
@@ -347,8 +388,9 @@ export function App() {
           </div>
         </section>
 
-        <aside class="controls" aria-label="Photo adjustments">
-          <div class="panel-heading"><div><span class="eyebrow">Make it yours</span><h2>Adjustments</h2></div><span class="panel-icon"><Icon name="sun" size={22} /></span></div>
+        <aside class={`controls ${controlsCollapsed ? 'controls-collapsed' : ''}`} aria-label="Photo adjustments">
+          <div class="panel-heading"><div><span class="eyebrow">Make it yours</span><h2>Adjustments</h2></div><span class="panel-icon"><Icon name="sun" size={22} /></span><button class="button button-small button-quiet mobile-controls-toggle" aria-expanded={!controlsCollapsed} aria-controls="editor-controls" onClick={() => setControlsCollapsed(value => !value)}>{controlsCollapsed ? 'Show controls' : 'Hide controls'}</button></div>
+          <div class="controls-content" id="editor-controls">
           <PresetLibrary presets={presets} disabled={!!busy || !ready} storageNotice={storageNotice} report={presetReport}
             onImport={() => presetInput.current?.click()} onApply={usePreset} onRename={(preset, name) => void renamePreset(preset, name)} onDelete={preset => void removePreset(preset)} onDownload={downloadOriginalPreset} />
           <div class="history-toolbar">
@@ -378,6 +420,7 @@ export function App() {
           <div class="panel-bottom">
             <div class="tip"><span class="tip-mark"><Icon name="check" size={15} /></span><div><strong>Room to experiment</strong><p>Your original stays untouched. Reset your edits whenever you like.</p></div></div>
             <div class="export-note"><span class="tiny-dot" />Full-resolution export</div>
+          </div>
           </div>
         </aside>
       </main>

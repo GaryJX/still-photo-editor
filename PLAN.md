@@ -6,7 +6,7 @@ Build a useful photo editor that runs entirely in the browser, uses Rust/WebAsse
 
 **Status:** Milestones 0–3 are implemented, including HSL and crop/rotation. Dark mode and unsaved-edit protection are published. Milestones 4–5 are next, followed by XMP export (6) and `Look`/profile compatibility (7). The user explicitly requested completing the entire roadmap and publishing each tested milestone.
 
-**Next action:** Finish the responsive/accessible workflow and error recovery, then run release validation. Then implement XMP export and the feasible `Look`/profile subset. Do not stop after a partial milestone unless a concrete external dependency blocks further progress.
+**Next action:** Run cross-browser release validation, fix findings, then implement XMP export and the feasible `Look`/profile subset. Then implement XMP export and the feasible `Look`/profile subset. Do not stop after a partial milestone unless a concrete external dependency blocks further progress.
 
 ## Product boundaries
 
@@ -159,12 +159,12 @@ If storage is unavailable or full, keep the preset usable for the current sessio
 
 - [x] Add native leave/refresh/close confirmation for unexported edits. Suppress it at defaults or the last exported recipe; reset the export baseline for each new image. Comparison, theme, and library-only changes do not count as edits.
 
-- [ ] Implement the final minimal desktop/mobile layout and progressive disclosure.
-- [ ] Make sliders, curves, crop controls, preset selection, and compare usable by keyboard.
+- [x] Implement the final minimal desktop/mobile layout and progressive disclosure.
+- [x] Make sliders, curves, crop controls, preset selection, and compare usable by keyboard.
 - [x] Add JPEG export with quality selection and WebP when supported; flatten transparency against a documented white/black background for JPEG.
-- [ ] Handle decoding, unsupported format, storage, worker, and export failures without losing recoverable work.
-- [ ] Show progress during import/export and keep labels, states, and reset behavior consistent.
-- [ ] Document that exported images are normalized to sRGB and that source EXIF/IPTC metadata is not preserved in the first release.
+- [x] Handle decoding, unsupported format, storage, worker, and export failures without losing recoverable work.
+- [x] Show progress during import/export and keep labels, states, and reset behavior consistent.
+- [x] Document that exported images are normalized to sRGB and that source EXIF/IPTC metadata is not preserved in the first release.
 
 **Exit condition:** a beginner can complete import → preset/manual edit → compare → export without learning implementation details.
 
@@ -236,6 +236,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-09-30 — Recovery and mobile workflow:** introduced a worker client that rejects pending RPCs on failure, a retained source file and generation guards for safe recovery, and a Recover editor action that preserves edits/history. Added a collapsible mobile controls panel that stays expanded on desktop. Production build and 29 WebKit workflows passed, with the unsupported native WebP encoder check skipped. Recovery was tested by terminating a simulated failed worker and restoring the edited pixels/history.
 
 - **2026-09-30 — Export formats:** added a native export dialog with PNG/JPEG and WebP when feature detection succeeds, quality selection, and white/black JPEG matte colors. The worker validates options and output MIME types, with a main-thread encoder fallback. Successful exports in any supported format clear the unsaved baseline; cancelling the dialog does not. Production build and 27 WebKit workflows passed; the WebP-specific check was correctly skipped because this WebKit build has no native WebP encoder. Crop/rotation deployment (`1341fbf`) succeeded.
 
