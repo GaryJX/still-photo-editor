@@ -1,4 +1,4 @@
-# Processing contract: engine 0.6.0
+# Processing contract: engine 0.7.0
 
 ## Input and output
 
@@ -13,13 +13,17 @@ Current import limits are 60 MiB compressed, 40 megapixels decoded, and 16,384 p
 ```json
 {
   "schemaVersion": 1,
-  "engineVersion": "0.6.0",
+  "engineVersion": "0.7.0",
   "exposure": 0,
   "contrast": 0,
   "warmth": 0,
   "tint": 0,
   "saturation": 0,
   "vibrance": 0,
+  "highlights": 0,
+  "shadows": 0,
+  "whites": 0,
+  "blacks": 0,
   "curves": {
     "master": [[0, 0], [1, 1]],
     "red": [[0, 0], [1, 1]],
@@ -36,13 +40,14 @@ The current operation order is:
 1. Convert the sRGB input to linear light using the standard piecewise sRGB transfer function.
 2. Multiply by `2^exposure` and the relative white-balance gains described below.
 3. Convert back to sRGB, apply contrast around 0.5, then clamp to [0, 1].
-4. Apply the master curve, then the corresponding RGB channel curve.
-5. Apply saturation/vibrance around weighted sRGB luma and clamp.
-6. Apply color mix in HSL.
-7. Apply the optional curve look or LUT, blend by its amount, and quantize once.
-8. Copy alpha unchanged.
+4. Apply Shadows, Highlights, Blacks, and Whites in that order using the monotone curves below.
+5. Apply the master curve, then the corresponding RGB channel curve.
+6. Apply saturation/vibrance around weighted sRGB luma and clamp.
+7. Apply color mix in HSL.
+8. Apply the optional curve look or LUT, blend by its amount, and quantize once.
+9. Copy alpha unchanged.
 
-The first four operations are composed into three 256-entry float tables. Saturation/vibrance then operate on float RGB values for each pixel, with one final quantization. This avoids full-resolution float buffers and repeated per-pixel powers.
+The first five operations are composed into three 256-entry float tables. Saturation/vibrance then operate on float RGB values for each pixel, with one final quantization. This avoids full-resolution float buffers and repeated per-pixel powers.
 
 Curves use 2–32 normalized input/output points, increasing input coordinates, fixed input endpoints 0 and 1, and output values in [0, 1]. Interpolation is piecewise linear. The UI displays point values on a 0–255 scale. Master and channel curves are separate and are composed in that order; matching Adobe's spline interpolation is not claimed.
 
@@ -55,6 +60,23 @@ Example: `[128, 64, 0, 127]` at +1 EV becomes `[176, 90, 0, 127]`. Identity expo
 Color mix adds an `hsl` recipe object with hue/saturation/luminance values for red, orange, yellow, green, aqua, blue, purple, and magenta (all default to zero). Hue centers are 0°, 30°, 60°, 120°, 180°, 240°, 270°, and 300°. Adjacent ranges blend linearly, including the red wraparound. Hue values map to ±30°, saturation multiplies by 0–2, and luminance offsets HSL lightness by up to ±0.5. Effects fade near neutral colors using `min(1, HSL saturation * 4)`; exact grays remain unchanged. Zero settings bypass HSL conversion. Adobe equivalence is approximate.
 
 The recipe also has `look: null` by default. Supported curve looks and referenced LUTs are defined in [look-support.md](look-support.md). Rendering identity excludes look names/UUIDs and treats zero amount as inactive. LUT data is cached separately from recipe/history snapshots and restored when a worker is recovered.
+
+## Tonal ranges
+
+Highlights, Shadows, Whites, and Blacks each use [−100, +100], normalized below to `h`, `s`, `w`, and `b` in [−1, +1]. After exposure/white balance and contrast, apply these updates sequentially to each encoded channel value `v`:
+
+```text
+v ← clamp(v + s × v × (1 − v)³)
+v ← clamp(v + h × v³ × (1 − v))
+v ← clamp(v + 0.25 × b × (1 − v)⁴)
+v ← clamp(v + 0.25 × w × v⁴)
+```
+
+Clamp to [0, 1]. Shadows and Highlights preserve pure black and pure white while primarily changing their respective darker/lighter ranges. Blacks and Whites act more strongly near the endpoints; positive Blacks lifts black and negative Whites lowers white. All supported extreme combinations remain monotone, preventing reversal of a grayscale ramp. These transforms are composed into the existing small per-channel tables; no additional full-size buffers or per-pixel neighborhood processing is required.
+
+These are global, channel-wise SDR tone adjustments. They may change hue like RGB tone curves and do not reproduce Adobe's local tone mapping. They cannot recover detail already clipped in an input file or by the preceding exposure/contrast stages. Zero values preserve the previous engine's pixel results exactly.
+
+Saved sessions from engine 0.6.0 migrate to 0.7.0 with neutral defaults for the new controls. Current, past, future, and export-baseline recipes are migrated together; unknown newer versions remain unsupported rather than being reset.
 
 ## Framing
 

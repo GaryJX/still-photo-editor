@@ -1,4 +1,4 @@
-import { adjustmentKeys, ENGINE_VERSION, initialRecipe, recipeKey, type Recipe } from '../editor/recipe';
+import { adjustmentKeys, toneAdjustmentKeys, ENGINE_VERSION, initialRecipe, recipeKey, type Recipe } from '../editor/recipe';
 import { curveChannels, defaultCurves, validCurve } from '../editor/curves';
 import { colorBands, defaultHsl, hslKeys } from '../editor/hsl';
 import { geometryLayout } from '../editor/geometry';
@@ -26,10 +26,11 @@ export type SaveStatus = 'saving' | 'saved' | 'session';
 export interface SessionEntry { document: PhotoSession; status: SaveStatus }
 
 export function restoreRecipe(value: unknown): Recipe {
-  const input = value as Recipe;
-  if (!input || input.schemaVersion !== 1 || input.engineVersion !== ENGINE_VERSION) throw new Error('This saved photo uses an unsupported edit version.');
+  const input = value as Omit<Recipe, 'engineVersion'> & { engineVersion: string };
+  if (!input || input.schemaVersion !== 1 || ![ENGINE_VERSION, '0.6.0'].includes(input.engineVersion)) throw new Error('This saved photo uses an unsupported edit version.');
   const result: Recipe = { ...initialRecipe, curves: defaultCurves(), hsl: defaultHsl() };
   for (const key of adjustmentKeys) {
+    if (input.engineVersion === '0.6.0' && (toneAdjustmentKeys as readonly string[]).includes(key) && input[key] === undefined) continue;
     if (!Number.isFinite(input[key]) || Math.abs(input[key]) > (key === 'exposure' ? 4 : 100)) throw new Error('Invalid saved adjustment.');
     result[key] = input[key];
   }

@@ -9,7 +9,7 @@ export const allPresetGroups: PresetGroups = { light: true, color: true, curves:
 
 export function presetPatch(recipe: Recipe, groups: PresetGroups): PresetPatch {
   return {
-    ...(groups.light ? { exposure: recipe.exposure, contrast: recipe.contrast } : {}),
+    ...(groups.light ? { exposure: recipe.exposure, contrast: recipe.contrast, highlights: recipe.highlights, shadows: recipe.shadows, whites: recipe.whites, blacks: recipe.blacks } : {}),
     ...(groups.color ? { warmth: recipe.warmth, tint: recipe.tint, saturation: recipe.saturation, vibrance: recipe.vibrance } : {}),
     ...(groups.curves ? { curves: recipe.curves } : {}),
     ...(groups.hsl ? { hsl: recipe.hsl } : {}),

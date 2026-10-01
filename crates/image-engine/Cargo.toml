@@ -1,9 +1,9 @@
 [package]
 name = "image-engine"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 publish = false
-description = "Browser-local photo processing for WASM Image Editor"
+description = "Browser-local photo processing for Still Photo Editor"
 license = "MIT"
 repository = "https://github.com/GaryJX/still-photo-editor"
 

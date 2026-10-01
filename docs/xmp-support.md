@@ -5,6 +5,7 @@ The editor imports a documented subset of Lightroom/Camera Raw preset settings. 
 | XMP field | Behavior |
 | --- | --- |
 | `Exposure2012` | Exposure in EV, from -4 to +4 |
+| `Highlights2012`, `Shadows2012`, `Whites2012`, `Blacks2012` | Supported approximately as global SDR tone curves; values from −100 to +100. Included in Light exports. |
 | `Contrast2012` | Approximate contrast mapping, -100 to +100 |
 | `Saturation`, `Vibrance` | Approximate color adjustments, -100 to +100 |
 | `IncrementalTemperature`, `IncrementalTint` | Approximate relative warmth/tint, -100 to +100 |
@@ -12,7 +13,7 @@ The editor imports a documented subset of Lightroom/Camera Raw preset settings. 
 | `HueAdjustment*`, `SaturationAdjustment*`, `LuminanceAdjustment*` | Approximate color-mix adjustments for Red, Orange, Yellow, Green, Aqua, Blue, Purple, and Magenta; -100 to +100 |
 | `Temperature`, `Tint`, `WhiteBalance` | Unsupported absolute RAW white balance; there is no reliable mapping without the source camera/color context |
 | `Look` | Self-contained curve looks are supported; Adobe camera-profile/table dependencies are named and reported. See [look-support.md](look-support.md). |
-| Grading/calibration, unavailable Adobe profiles/tables, highlights/shadows, clarity/dehaze, sharpening/noise reduction, grain/vignette, masks/healing, geometry | Unsupported in the current importer; listed in the compatibility report |
+| Grading/calibration, unavailable Adobe profiles/tables, clarity/dehaze, sharpening/noise reduction, grain/vignette, masks/healing, geometry | Unsupported in the current importer; listed in the compatibility report |
 
 The parser supports attributes and element-form scalar values, namespace-prefix variations, and RDF sequence curve arrays. It reads only Camera Raw settings on top-level RDF descriptions, so exposure values inside a local mask cannot accidentally become global adjustments. It recognizes common process-version markers; unrecognized versions are flagged while explicitly supported fields retain their documented mappings. Legacy fields such as `Exposure` are not silently treated as `Exposure2012`.
 

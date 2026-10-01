@@ -4,9 +4,9 @@
 
 Build a useful photo editor that runs entirely in the browser, uses Rust/WebAssembly for processing, and makes editing approachable for beginners. A user should be able to open a photo, apply an XMP preset or adjust a few controls, compare the result, and download the edited image.
 
-**Status:** Milestones 0–8 are complete for the documented supported formats. Version 1.1.0 is deployed and live-verified at https://garyjx.github.io/still-photo-editor/. The repository/local folder rename and tagline update are complete. Unsupported Adobe camera/profile-table formats and real-device testing limits are explicitly documented.
+**Status:** Milestones 0–9 are complete for the documented supported formats. Version 1.2.0 is deployed and live-verified at https://garyjx.github.io/still-photo-editor/. The repository/local folder rename and tagline update are complete. Unsupported Adobe camera/profile-table formats and real-device testing limits are explicitly documented.
 
-**Next action:** Build browser session recovery and a compact photo list, then Highlights/Shadows/Whites/Blacks with XMP mappings. The user confirmed this focused scope; preset previews/strength, export resizing, and histogram remain future ideas.
+**Next action:** Publish and live-verify Highlights/Shadows/Whites/Blacks with XMP support and saved-session migration. The confirmed focus is session recovery, the photo list, and these light controls; the other suggestions remain future ideas.
 
 ## Product boundaries
 
@@ -97,7 +97,7 @@ Current implementation and limits are recorded in `docs/xmp-support.md`. Exposur
 | `Temperature`, `Tint`, `IncrementalTemperature`, `IncrementalTint`, `WhiteBalance` | Handle absolute RAW and relative rendered-image forms explicitly; offer an approximate warmth/tint mapping where defined and flag ambiguous cases |
 | `ToneCurvePV2012` and its Red/Green/Blue variants | Parse point arrays, validate domains/order, and use a documented curve interpolation method |
 | `HueAdjustment*`, `SaturationAdjustment*`, `LuminanceAdjustment*` | Approximate Adobe's eight color bands using the editor's documented blending model |
-| Camera profiles, calibration, grading, highlights/shadows, clarity/dehaze, sharpening/noise reduction, grain/vignette, masks, healing, geometry | Recognize as unsupported where possible and report; expand only as corresponding engine features ship |
+| Camera profiles, calibration, grading, clarity/dehaze, sharpening/noise reduction, grain/vignette, masks, healing, geometry | Recognize as unsupported where possible and report; expand only as corresponding engine features ship |
 
 Use `ProcessVersion` to recognize known semantics and flag unknown versions; do not silently interpret every legacy field as a current control. Embedded/external camera profiles and LUT dependencies remain unsupported initially. Do not fetch them from locations referenced in XMP.
 
@@ -215,20 +215,20 @@ Requested by the user after encountering unsupported `Look` settings in real pre
 - [x] Verify view changes leave edits, history, exports, and leave warnings unchanged; reset the view for a new photo or geometry.
 - [x] Verify mouse, keyboard, touch, responsive layout, and cross-browser deployment.
 
-### 9. Saved photo sessions and a photo list — in progress
+### 9. Saved photo sessions and a photo list — complete
 
 - [x] Save original files, validated recipe/history snapshots, export baselines, comparison position, thumbnails, and required LUT dependencies in IndexedDB.
 - [x] Offer Resume photo on return and a compact list to switch among edited photos, retaining independent edits and history.
 - [x] Keep only the selected image decoded; write original files once and coalesce subsequent small document updates.
 - [x] Show Saving / Saved in this browser / Session only honestly. Storage failure must not prevent editing or switching within the current tab.
 - [x] Allow deliberate removal of stored photos/edits, and preserve the unexported-edit leave warning.
-- [ ] Verify reload, switching, history, exports, dependency restoration, storage failure, removal, and responsive/accessibility behavior; commit and deploy.
+- [x] Verify reload, switching, history, exports, dependency restoration, storage failure, removal, and responsive/accessibility behavior; commit and deploy.
 
 ### 10. More light controls — after saved sessions
 
-- [ ] Implement Highlights, Shadows, Whites, and Blacks in the shared Rust preview/detail/export pipeline, with documented SDR semantics.
-- [ ] Add beginner-facing controls, history/reset support, and explicit XMP import/export mappings.
-- [ ] Migrate saved recipes/history from the earlier engine version with zero defaults, preserving appearance and export baselines.
+- [x] Implement Highlights, Shadows, Whites, and Blacks in the shared Rust preview/detail/export pipeline, with documented SDR semantics.
+- [x] Add beginner-facing controls, history/reset support, and explicit XMP import/export mappings.
+- [x] Migrate saved recipes/history from the earlier engine version with zero defaults, preserving appearance and export baselines.
 - [ ] Verify tonal targeting, alpha/neutral behavior, preview/export agreement, XMP round-trips, restored sessions, and browser workflows; commit and deploy.
 
 ## Performance targets and verification
@@ -260,6 +260,10 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-10-01 — Saved sessions released:** [run 36910528888](https://github.com/GaryJX/still-photo-editor/actions/runs/36910528888) passed all 168 browser workflows and deployed version 1.2.0 (`cdb6684`). Live verification confirmed two independent photo sessions, edited pixels, switching, reload/Resume photo, and undo, with no page errors. Milestone 9 is complete.
+
+- **2026-10-01 — Expanded light controls:** engine 0.7.0 adds bounded monotone Shadows/Highlights/Blacks/Whites curves between contrast and the master/RGB curves. More light controls exposes beginner-facing sliders and numeric entry; all four participate in history, reset, XMP parsing/export, and sessions. Parser version 5 reparses saved XMPs. Earlier saved recipe/history/export baselines migrate with zero defaults, preserving appearance. Twenty-four Rust tests, 21 frontend tests, and focused WebKit tonal targeting, XMP/PNG round-trip, migration, and accessibility checks pass. The full local WebKit suite passed 58 workflows with one unavailable WebP encoder skip. Cross-browser release validation and live verification are next.
 
 - **2026-10-01 — Photo sessions and list implemented:** added local originals/edited thumbnails, independent recipe/history snapshots, comparison/export baselines, LUT dependency persistence, a compact Photos list, Resume photo, and deliberate removal. Source files are stored once; metadata saves coalesce with a one-second checkpoint during continuous edits. Saved/session-only statuses and retry follow actual transaction outcomes. Local WebKit exposed Blob/File persistence failures, so storage uses exact binary buffers; restored files, undo history, and LUT-dependent framing all pass. The full WebKit run passed 55 workflows with one unavailable WebP encoder skip; 21 frontend tests and nine focused checkpoint/comparison/session checks pass. Desktop and 320 px layouts were reviewed. Cross-browser CI and live verification are next.
 

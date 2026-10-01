@@ -1,5 +1,6 @@
 mod geometry;
 mod hsl;
+mod light;
 mod lut;
 use wasm_bindgen::prelude::*;
 
@@ -111,9 +112,9 @@ fn linear_to_srgb(value: f32) -> f32 {
     }
 }
 
-fn validate_settings(values: &[f32]) -> Result<[f32; 6], &'static str> {
-    if values.len() != 6 {
-        return Err("Expected six adjustment values");
+fn validate_settings(values: &[f32]) -> Result<[f32; 10], &'static str> {
+    if values.len() != 10 {
+        return Err("Expected ten adjustment values");
     }
     for (index, value) in values.iter().enumerate() {
         let limit = if index == 0 { 4.0 } else { 100.0 };
@@ -178,18 +179,20 @@ fn evaluate_curve(curve: &Curve, value: f32) -> f32 {
 #[cfg(test)]
 fn apply_adjustments(
     input: &[u8],
-    settings: &[f32; 6],
+    settings: &[f32],
     curves: &[Curve; 4],
     bands: &hsl::Bands,
 ) -> Vec<u8> {
     let mut output = input.to_vec();
-    apply_adjustments_in_place(&mut output, settings, curves, bands, None, 0.0);
+    let mut all_settings = [0.0; 10];
+    all_settings[..settings.len()].copy_from_slice(settings);
+    apply_adjustments_in_place(&mut output, &all_settings, curves, bands, None, 0.0);
     output
 }
 
 fn apply_adjustments_in_place(
     output: &mut [u8],
-    settings: &[f32; 6],
+    settings: &[f32; 10],
     curves: &[Curve; 4],
     bands: &hsl::Bands,
     profile: Option<Profile<'_>>,
@@ -204,7 +207,14 @@ fn apply_adjustments_in_place(
     {
         return;
     }
-    let [exposure, contrast, warmth, tint, saturation, vibrance] = *settings;
+    let [exposure, contrast, warmth, tint, saturation, vibrance, highlights, shadows, whites, blacks] =
+        *settings;
+    let light_settings = [
+        highlights / 100.0,
+        shadows / 100.0,
+        whites / 100.0,
+        blacks / 100.0,
+    ];
     let w = warmth / 100.0;
     let t = tint / 100.0;
     let mut balance = [
@@ -230,6 +240,7 @@ fn apply_adjustments_in_place(
                 linear_to_srgb(linear)
             };
             let tone = ((encoded - 0.5) * slope + 0.5).clamp(0.0, 1.0);
+            let tone = light::apply(tone, &light_settings);
             *entry = evaluate_curve(&curves[channel + 1], evaluate_curve(&curves[0], tone));
         }
     }
@@ -280,7 +291,7 @@ mod tests {
         2.0, 0.0, 0.0, 1.0, 1.0, 2.0, 0.0, 0.0, 1.0, 1.0, 2.0, 0.0, 0.0, 1.0, 1.0, 2.0, 0.0, 0.0,
         1.0, 1.0,
     ];
-    fn adjust(input: &[u8], settings: &[f32; 6]) -> Vec<u8> {
+    fn adjust(input: &[u8], settings: &[f32]) -> Vec<u8> {
         apply_adjustments(
             input,
             settings,
@@ -325,7 +336,7 @@ mod tests {
         let mut pixels = vec![0, 255, 0, 123];
         apply_adjustments_in_place(
             &mut pixels,
-            &[0.; 6],
+            &[0.; 10],
             &parse_curves(&IDENTITY).unwrap(),
             &[[0.; 3]; 8],
             Some(Profile::Lut(&table)),
@@ -343,8 +354,8 @@ mod tests {
         values[2] = f32::NAN;
         assert!(parse_curves(&values).is_err());
     }
-    fn exposure(value: f32) -> [f32; 6] {
-        [value, 0.0, 0.0, 0.0, 0.0, 0.0]
+    fn exposure(value: f32) -> [f32; 10] {
+        [value, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     }
 
     #[test]
@@ -472,6 +483,80 @@ mod tests {
             adjust(&[150, 100, 100, 255], &[0.0, 0.0, 0.0, 0.0, 0.0, 100.0]),
             [150, 100, 100, 255]
         );
+    }
+    #[test]
+    fn light_controls_preserve_alpha_neutrals_and_native_detail_export_agreement() {
+        let source: Vec<u8> = (0..=255).flat_map(|n| [n, n, n, 255 - n]).collect();
+        let engine = ImageEngine::new(source.clone(), source.clone()).unwrap();
+        let mut values = exposure(0.0);
+        values[6..].copy_from_slice(&[-80.0, 75.0, -30.0, 20.0]);
+        let layout = [256, 1, 0, 0, 256, 1, 0];
+        let full = engine
+            .render(
+                &values,
+                &IDENTITY,
+                &[0.0; 24],
+                &[],
+                0.0,
+                false,
+                &layout,
+                true,
+            )
+            .unwrap();
+        let preview = engine
+            .render(
+                &values,
+                &IDENTITY,
+                &[0.0; 24],
+                &[],
+                0.0,
+                false,
+                &layout,
+                false,
+            )
+            .unwrap();
+        let region = [256, 1, 0, 0, 256, 1, 0, 32, 0, 50, 1, 50, 1];
+        let detail = engine
+            .render(
+                &values,
+                &IDENTITY,
+                &[0.0; 24],
+                &[],
+                0.0,
+                false,
+                &region,
+                true,
+            )
+            .unwrap();
+        assert_eq!(full, preview);
+        assert_eq!(&full[32 * 4..82 * 4], detail);
+        for (index, pixel) in full.chunks_exact(4).enumerate() {
+            assert_eq!(pixel[0], pixel[1]);
+            assert_eq!(pixel[1], pixel[2]);
+            assert_eq!(pixel[3], 255 - index as u8);
+        }
+        assert_eq!(
+            engine
+                .render(
+                    &exposure(0.0),
+                    &IDENTITY,
+                    &[0.0; 24],
+                    &[],
+                    0.0,
+                    false,
+                    &layout,
+                    true
+                )
+                .unwrap(),
+            source
+        );
+        for index in 6..10 {
+            for invalid in [101.0, -101.0, f32::NAN] {
+                values[index] = invalid;
+                assert!(validate_settings(&values).is_err());
+                values[index] = 0.0;
+            }
+        }
     }
     #[test]
     fn invalid_values_are_rejected() {

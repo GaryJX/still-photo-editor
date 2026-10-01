@@ -7,7 +7,7 @@ import { readLook } from './look';
 import { readCurveField } from './curve-field';
 import { bandLabel, hslLabels, mergeHsl, xmpHslFields } from '../editor/hsl';
 
-export const PARSER_VERSION = 4;
+export const PARSER_VERSION = 5;
 export const MAX_XMP_BYTES = 2 * 1024 * 1024;
 export interface ImportReport { applied: string[]; approximated: string[]; unsupported: string[]; invalid: string[]; warnings: string[] }
 export interface ParsedPreset { name: string; patch: PresetPatch; report: ImportReport }

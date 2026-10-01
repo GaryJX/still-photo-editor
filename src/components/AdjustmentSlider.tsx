@@ -4,6 +4,10 @@ import { NumberInput } from './NumberInput';
 const descriptions: Record<Adjustment, [string, string, string, string]> = {
   exposure: ['Exposure', 'Darker', 'Brighter', 'Change the overall brightness of your photo.'],
   contrast: ['Contrast', 'Softer', 'Stronger', 'Change the separation between light and dark tones.'],
+  highlights: ['Highlights', 'Darker', 'Brighter', 'Adjust lighter tones while preserving pure white.'],
+  shadows: ['Shadows', 'Deeper', 'Brighter', 'Adjust darker tones while preserving pure black.'],
+  whites: ['Whites', 'Dimmer', 'Brighter', 'Adjust the brightest tones and the white point.'],
+  blacks: ['Blacks', 'Deeper', 'Lifted', 'Deepen or lift the darkest tones and the black point.'],
   warmth: ['Warmth', 'Cooler', 'Warmer', 'Shift the overall color toward blue or amber.'],
   tint: ['Tint', 'Greener', 'More magenta', 'Balance green and magenta color casts.'],
   saturation: ['Color intensity', 'Muted', 'Vivid', 'Adjust the saturation of every color.'],

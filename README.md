@@ -16,7 +16,7 @@ Still includes a hover-revealed comparison divider, zoom and pan, global light/c
 
 - Open or drop a JPEG, PNG, or WebP photo. Use **Photos** above the image to switch among your photos, with independent edits, undo/redo, and comparison positions.
 - Save photo sessions automatically in this browser. On return, choose **Resume photo**, or reopen another photo from the list. Edited thumbnails help you find them.
-- Adjust exposure, contrast, warmth, tint, color intensity, and vibrance, with a responsive preview.
+- Adjust exposure, contrast, warmth, tint, color intensity, and vibrance, with a responsive preview. Expand **More light controls** for Highlights, Shadows, Whites, and Blacks; those settings also import/export through XMP.
 - Edit the master and red/green/blue tone curves with draggable points, numeric values, and keyboard controls.
 - Adjust hue, intensity, and brightness for eight color ranges in **Color mix**, including matching XMP HSL fields.
 - Crop freely or use common aspect ratios, rotate in 90° steps, and undo framing changes. Both sides of the comparison keep the same framing.

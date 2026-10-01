@@ -11,6 +11,8 @@ export const STILL = 'https://garyjx.github.io/wasm-image-editor/xmp/1.0/';
 
 export const scalarFields: Record<string, [Adjustment, string]> = {
   Exposure2012: ['exposure', 'Exposure'], Contrast2012: ['contrast', 'Contrast'],
+  Highlights2012: ['highlights', 'Highlights'], Shadows2012: ['shadows', 'Shadows'],
+  Whites2012: ['whites', 'Whites'], Blacks2012: ['blacks', 'Blacks'],
   Saturation: ['saturation', 'Color intensity'], Vibrance: ['vibrance', 'Vibrance'],
   IncrementalTemperature: ['warmth', 'Warmth'], IncrementalTint: ['tint', 'Tint'],
 };

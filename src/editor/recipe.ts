@@ -3,8 +3,9 @@ import { defaultHsl, type HslSettings } from './hsl';
 import { defaultGeometry, type Geometry } from './geometry';
 import { renderingLook, type Look } from './look';
 
-export const ENGINE_VERSION = '0.6.0';
-export const adjustmentKeys = ['exposure', 'contrast', 'warmth', 'tint', 'saturation', 'vibrance'] as const;
+export const ENGINE_VERSION = '0.7.0';
+export const toneAdjustmentKeys = ['highlights', 'shadows', 'whites', 'blacks'] as const;
+export const adjustmentKeys = ['exposure', 'contrast', 'warmth', 'tint', 'saturation', 'vibrance', ...toneAdjustmentKeys] as const;
 export type Adjustment = typeof adjustmentKeys[number];
 
 export interface Recipe {
@@ -16,6 +17,10 @@ export interface Recipe {
   tint: number;
   saturation: number;
   vibrance: number;
+  highlights: number;
+  shadows: number;
+  whites: number;
+  blacks: number;
   curves: Curves;
   hsl: HslSettings;
   geometry: Geometry;
@@ -25,6 +30,7 @@ export interface Recipe {
 export const initialRecipe: Recipe = {
   schemaVersion: 1, engineVersion: ENGINE_VERSION,
   exposure: 0, contrast: 0, warmth: 0, tint: 0, saturation: 0, vibrance: 0,
+  highlights: 0, shadows: 0, whites: 0, blacks: 0,
   curves: defaultCurves(),
   hsl: defaultHsl(),
   geometry: defaultGeometry(),

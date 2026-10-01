@@ -5,7 +5,7 @@ import { Icon } from '../components/Icon';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { ComparisonPreview } from '../components/ComparisonPreview';
 import { decodeOnMain, encodeOnMain, validatePhoto } from '../editor/image';
-import { adjustmentValue, initialRecipe, recipeKey, type Adjustment, type Recipe } from '../editor/recipe';
+import { adjustmentValue, initialRecipe, recipeKey, toneAdjustmentKeys, type Adjustment, type Recipe } from '../editor/recipe';
 import { EditHistory } from '../editor/history';
 import { AdjustmentSlider } from '../components/AdjustmentSlider';
 import { CurveEditor } from '../components/CurveEditor';
@@ -610,6 +610,7 @@ export function App() {
           <div class={`adjustment-section ${!photo ? 'inactive' : ''}`}>
             <div class="section-heading"><h3>Light</h3></div>
             {(['exposure', 'contrast'] as const).map(name => <AdjustmentSlider key={name} name={name} value={recipe[name]} disabled={disabled} onInput={value => adjust(name, value, true)} onCommit={commitGesture} onChange={value => adjust(name, value)} />)}
+            <details class="advanced-controls light-controls"><summary>More light controls</summary>{toneAdjustmentKeys.map(name => <AdjustmentSlider key={name} name={name} value={recipe[name]} disabled={disabled} onInput={value => adjust(name, value, true)} onCommit={commitGesture} onChange={value => adjust(name, value)} />)}</details>
           </div>
           <div class={`adjustment-section ${!photo ? 'inactive' : ''}`}>
             <div class="section-heading"><h3>Color</h3></div>
