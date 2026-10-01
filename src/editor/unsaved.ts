@@ -6,8 +6,8 @@ export function hasUnexportedEdits(hasPhoto: boolean, recipe: Recipe, lastExport
   return hasPhoto && current !== recipeKey(initialRecipe) && current !== lastExportedKey;
 }
 
-export function useUnsavedEditWarning(hasPhoto: boolean, recipe: Recipe, lastExportedKey?: string) {
-  const dirty = hasUnexportedEdits(hasPhoto, recipe, lastExportedKey);
+export function useUnsavedEditWarning(hasPhoto: boolean, recipe: Recipe, lastExportedKey?: string, otherUnexportedEdits = false) {
+  const dirty = otherUnexportedEdits || hasUnexportedEdits(hasPhoto, recipe, lastExportedKey);
   useLayoutEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => {

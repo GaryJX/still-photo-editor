@@ -1,3 +1,5 @@
+export interface HistorySnapshot<T> { current: T; past: T[]; future: T[] }
+
 /** Snapshot history with one entry per completed gesture and bounded memory. */
 export class EditHistory<T> {
   current: T;
@@ -32,6 +34,13 @@ export class EditHistory<T> {
     if (!this.future.length) return;
     this.past.push(this.current);
     this.current = this.future.pop()!;
+  }
+  snapshot(): HistorySnapshot<T> {
+    const pending = this.start !== undefined && this.key(this.start) !== this.key(this.current);
+    return { current: this.current, past: (pending ? [...this.past, this.start!] : [...this.past]).slice(-this.limit), future: pending ? [] : [...this.future] };
+  }
+  restore(snapshot: HistorySnapshot<T>) {
+    this.current = snapshot.current; this.past = snapshot.past.slice(-this.limit); this.future = snapshot.future.slice(-this.limit); this.start = undefined;
   }
   reset(next: T) { this.current = next; this.past = []; this.future = []; this.start = undefined; }
 }

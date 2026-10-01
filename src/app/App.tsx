@@ -23,11 +23,14 @@ import { presetPatch, serializeXmpPreset } from '../presets/export';
 import { applyPresetPatch, createPreset, MAX_XMP_BYTES, type SavedPreset } from '../presets/xmp';
 import { loadPresets, savePreset, deletePreset, loadLuts, saveLut } from '../presets/storage';
 import { useComparisonActivity } from '../editor/comparison-activity';
-import { useUnsavedEditWarning } from '../editor/unsaved';
+import { PhotoLibrary as PhotoLibraryStore, type LibraryState } from '../sessions/library';
+import { PhotoLibrary } from '../components/PhotoLibrary';
+import { sessionLutIds } from '../sessions/schema';
+import { hasUnexportedEdits, useUnsavedEditWarning } from '../editor/unsaved';
 import { LatestRenderer } from '../editor/scheduler';
 import type { Frame, PhotoInfo, RenderMetrics } from '../worker/types';
 
-type Photo = PhotoInfo & { name: string; id: number };
+type Photo = PhotoInfo & { name: string; id: number; sessionId: string };
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 
 export function App() {
@@ -35,12 +38,17 @@ export function App() {
   const [photo, setPhoto] = useState<Photo>();
   const [frame, setFrame] = useState<Frame>();
   const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
+  const [sessions, setSessions] = useState<LibraryState>({ entries: [], notice: '', loaded: false });
+  const [library] = useState(() => new PhotoLibraryStore(setSessions));
+  const activeSessionId = useRef<string | undefined>(undefined);
+  const exportedBaseline = useRef<string | undefined>(undefined);
+  const comparisonRef = useRef(50);
   const [lastExportedKey, setLastExportedKey] = useState<string>();
   const [exportDialog, setExportDialog] = useState(false);
   const [savePresetDialog, setSavePresetDialog] = useState(false);
   const [exportOptions, setExportOptions] = useState(defaultExportOptions);
   const [formats, setFormats] = useState<ExportFormat[]>(['image/png']);
-  useUnsavedEditWarning(!!photo, recipe, lastExportedKey);
+  useUnsavedEditWarning(!!photo, recipe, lastExportedKey, sessions.entries.some(entry => entry.document.id !== activeSessionId.current && entry.status !== 'saved' && hasUnexportedEdits(true, entry.document.history.current, entry.document.lastExportedKey)));
   const history = useRef(new EditHistory(initialRecipe, recipeKey));
   const [, updateHistory] = useState(0);
   const [originalFrame, setOriginalFrame] = useState<Frame>();
@@ -48,7 +56,7 @@ export function App() {
   const [cropSession, setCropSession] = useState<{ frame: Frame; initial: Crop; rotation: number }>();
   const [comparison, setComparison] = useState(50);
   const comparisonActivity = useComparisonActivity();
-  const [busy, setBusy] = useState<'opening' | 'exporting' | 'preset' | 'crop' | 'recovering' | 'save-preset' | 'look' | null>(null);
+  const [busy, setBusy] = useState<'opening' | 'exporting' | 'preset' | 'crop' | 'recovering' | 'save-preset' | 'look' | 'restoring' | 'removing' | null>(null);
   const [presets, setPresets] = useState<SavedPreset[]>([]);
   const [luts, setLuts] = useState<LutAsset[]>([]);
   const lutsRef = useRef<LutAsset[]>([]);
@@ -105,6 +113,86 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    void library.load();
+    const save = () => { if (document.visibilityState === 'hidden') void library.flush(); };
+    document.addEventListener('visibilitychange', save);
+    return () => { document.removeEventListener('visibilitychange', save); library.dispose(); };
+  }, []);
+
+  function persistCurrent() {
+    const id = activeSessionId.current;
+    if (id) library.update(id, { history: history.current.snapshot(), lastExportedKey: exportedBaseline.current, comparison: comparisonRef.current }, lutsRef.current);
+  }
+  function changeComparison(value: number) {
+    comparisonRef.current = value; setComparison(value); persistCurrent();
+  }
+  async function decodePhoto(client: EngineClient, file: File) {
+    const loaded = await client.open(file);
+    if (loaded !== 'decode-on-main') return loaded;
+    const decoded = await decodeOnMain(file);
+    return client.openDecoded(transfer(decoded, [decoded.pixels.buffer as ArrayBuffer, decoded.previewPixels.buffer as ArrayBuffer]));
+  }
+  async function installHistoryLuts(client: EngineClient, snapshot = history.current.snapshot()) {
+    for (const id of sessionLutIds(snapshot)) {
+      const asset = lutsRef.current.find(asset => asset.id === id);
+      if (asset) await client.installLut(asset);
+    }
+  }
+  async function restorePhoto(id: string) {
+    if (busyRef.current || !api.current || !ready || activeSessionId.current === id) return;
+    history.current.commit(); persistCurrent(); comparisonActivity.reset();
+    const client = api.current, epoch = workerEpoch.current;
+    busyRef.current = true; setBusy('restoring'); setError(''); setNotice(''); setRendering(false); scheduler.current?.invalidate();
+    let changedSource = false;
+    try {
+      const saved = await library.open(id);
+      validatePhoto(saved.file);
+      const assets = Array.from(new Map([...saved.assets, ...lutsRef.current].map(asset => [asset.id, asset])).values());
+      for (const asset of assets.filter(asset => sessionLutIds(saved.document.history).has(asset.id))) await client.installLut(asset);
+      const look = saved.document.history.current.look;
+      if (look?.kind === 'lut' && look.amount > 0 && !assets.some(asset => asset.id === look.assetId)) throw new Error(`Import the .cube file for ${look.name}, then resume this photo.`);
+      const loaded = await decodePhoto(client, saved.file); changedSource = true;
+      const restored = await client.render(saved.document.history.current);
+      if (epoch !== workerEpoch.current) return;
+      updateLuts(assets);
+      sourceFile.current = saved.file; activeSessionId.current = id;
+      setPhoto({ ...loaded.info, name: saved.document.name, id: ++photoSerial.current, sessionId: id });
+      setFrame(restored); setOriginalFrame(restored.original ?? loaded.frame); originalGeometry.current = restored.geometryKey; setMetrics(restored.metrics);
+      history.current.restore(saved.document.history); setRecipe(history.current.current); updateHistory(value => value + 1);
+      exportedBaseline.current = saved.document.lastExportedKey; setLastExportedKey(exportedBaseline.current);
+      comparisonRef.current = saved.document.comparison; setComparison(comparisonRef.current);
+      library.select(id); setNotice('Your photo and edits are ready.');
+    } catch (failure) {
+      if (epoch !== workerEpoch.current) return;
+      if (changedSource && sourceFile.current) {
+        try {
+          await decodePhoto(client, sourceFile.current); await installHistoryLuts(client);
+          const restored = await client.render(history.current.current);
+          if (epoch !== workerEpoch.current) return;
+          setFrame(restored); setOriginalFrame(restored.original); originalGeometry.current = restored.geometryKey;
+        } catch { setReady(false); }
+      }
+      setError(`Could not resume this photo. ${errorMessage(failure)}`);
+    } finally { if (epoch === workerEpoch.current) { busyRef.current = false; setBusy(null); } }
+  }
+  async function removePhoto(id: string) {
+    if (busyRef.current) return;
+    busyRef.current = true; setBusy('removing'); setError('');
+    try {
+      await library.remove(id);
+      if (activeSessionId.current === id) {
+        sourceFile.current = undefined; activeSessionId.current = undefined; exportedBaseline.current = undefined;
+        setPhoto(undefined); setFrame(undefined); setOriginalFrame(undefined); originalGeometry.current = '';
+        history.current.reset(initialRecipe); setRecipe(initialRecipe); setLastExportedKey(undefined); updateHistory(value => value + 1);
+        comparisonRef.current = 50; setComparison(50); comparisonActivity.reset();
+        const { client } = startEngine(); setReady(true); void client.ready().catch(() => {});
+      }
+      setNotice('Photo and edits removed from this browser.');
+    } catch (failure) { setError(errorMessage(failure)); }
+    finally { busyRef.current = false; setBusy(null); }
+  }
+
   async function recoverEditor() {
     if (busyRef.current) return;
     busyRef.current = true; setBusy('recovering'); setError(''); setReady(false);
@@ -117,12 +205,7 @@ export function App() {
           const decoded = await decodeOnMain(sourceFile.current);
           loaded = await client.openDecoded(transfer(decoded, [decoded.pixels.buffer as ArrayBuffer, decoded.previewPixels.buffer as ArrayBuffer]));
         }
-        const look = history.current.current.look;
-        if (look?.kind === 'lut' && look.amount > 0) {
-          const asset = lutsRef.current.find(item => item.id === look.assetId);
-          if (!asset) throw new Error(`Reimport the .cube file for ${look.name}.`);
-          await client.installLut(asset);
-        }
+        await installHistoryLuts(client);
         const restored = await client.render(history.current.current);
         if (epoch !== workerEpoch.current) return;
         setFrame(restored); setMetrics(restored.metrics); setOriginalFrame(restored.original ?? loaded.frame); originalGeometry.current = restored.geometryKey;
@@ -281,6 +364,7 @@ export function App() {
     const epoch = workerEpoch.current;
     try { validatePhoto(file); }
     catch (failure) { setError(errorMessage(failure)); return; }
+    history.current.commit(); persistCurrent();
     busyRef.current = true;
     setBusy('opening');
     setError('');
@@ -295,16 +379,19 @@ export function App() {
       }
       if (epoch !== workerEpoch.current) return;
       sourceFile.current = file;
-      setPhoto({ ...loaded.info, name: file.name, id: ++photoSerial.current });
+      history.current.reset(initialRecipe);
+      const sessionId = library.add(file, loaded.info, history.current.snapshot());
+      activeSessionId.current = sessionId;
+      setPhoto({ ...loaded.info, name: file.name, id: ++photoSerial.current, sessionId });
       setFrame(loaded.frame);
       setOriginalFrame(loaded.frame);
       originalGeometry.current = loaded.frame.geometryKey;
       setMetrics(loaded.frame.metrics);
-      history.current.reset(initialRecipe);
+      exportedBaseline.current = undefined;
       setLastExportedKey(undefined);
       setRecipe(initialRecipe);
       updateHistory(value => value + 1);
-      setComparison(50);
+      comparisonRef.current = 50; setComparison(50);
       comparisonActivity.reset();
     } catch (failure) {
       if (epoch !== workerEpoch.current) return;
@@ -325,6 +412,7 @@ export function App() {
     setRendering(true);
     setNotice('');
     scheduler.current?.request(next);
+    persistCurrent();
   }
 
   function applyRecipe(next: Recipe, transient = false) {
@@ -345,6 +433,7 @@ export function App() {
   function commitGesture() {
     comparisonActivity.finish();
     history.current.commit();
+    persistCurrent();
     updateHistory(value => value + 1);
   }
 
@@ -423,7 +512,7 @@ export function App() {
       document.body.append(link);
       link.click();
       link.remove();
-      setLastExportedKey(exportedKey);
+      exportedBaseline.current = exportedKey; setLastExportedKey(exportedKey); persistCurrent();
       setExportOptions(options);
       setExportDialog(false);
       setTimeout(() => { URL.revokeObjectURL(url); downloadUrls.current.delete(url); }, 60_000);
@@ -436,7 +525,10 @@ export function App() {
   }
 
   const disabled = !photo || !!busy || !ready || !!cropSession;
-  const status = busy === 'opening' ? 'Opening your photo…' : busy === 'exporting' ? 'Preparing your full-size image…' : busy === 'preset' ? 'Reading your preset…' : busy === 'crop' ? 'Preparing crop preview…' : busy === 'recovering' ? 'Recovering your photo and edits…' : busy === 'save-preset' ? 'Saving your preset…' : busy === 'look' ? 'Preparing your look…' : rendering ? 'Updating preview…' : notice;
+  const status = busy === 'restoring' ? 'Restoring your photo…' : busy === 'removing' ? 'Removing the saved photo…' : busy === 'opening' ? 'Opening your photo…' : busy === 'exporting' ? 'Preparing your full-size image…' : busy === 'preset' ? 'Reading your preset…' : busy === 'crop' ? 'Preparing crop preview…' : busy === 'recovering' ? 'Recovering your photo and edits…' : busy === 'save-preset' ? 'Saving your preset…' : busy === 'look' ? 'Preparing your look…' : rendering ? 'Updating preview…' : notice;
+
+  const resume = sessions.entries.find(entry => entry.document.id === sessions.resumeId) ?? sessions.entries[0];
+  const activeSaveStatus = sessions.entries.find(entry => entry.document.id === activeSessionId.current)?.status;
 
   return (
     <div class="app-shell"
@@ -475,25 +567,26 @@ export function App() {
       <main class={`workspace ${photo ? 'has-photo' : ''}`}>
         <section class="stage" aria-label="Photo preview" aria-busy={!!busy || rendering}>
           <div class="stage-toolbar">
-            <span class="eyebrow">{photo ? 'Your canvas' : 'Something good starts here'}</span>
-            <span class="local-badge"><span class="status-dot" />On your device</span>
+            <PhotoLibrary state={sessions} activeId={activeSessionId.current} busy={!!busy || !ready || !!cropSession} onSelect={id => void restorePhoto(id)} onRemove={removePhoto} onRetry={id => library.retry(id)} onAdd={() => input.current?.click()} />
+            <span class="local-badge" data-photo-save-status={activeSaveStatus}><span class="status-dot" />{activeSaveStatus === 'saving' ? 'Saving…' : activeSaveStatus === 'saved' ? 'Saved in this browser' : activeSaveStatus === 'session' ? 'Session only' : 'On your device'}</span>
           </div>
 
           <div class={`canvas-area ${photo ? 'loaded' : ''}`}>
-            {photo && frame && originalFrame ? <ComparisonPreview revealForEdit={comparisonActivity.visible} key={`${photo.id}:${frame.geometryKey}`} client={api.current} recipe={recipe} detailEnabled={ready && !busy && !rendering} frame={frame} original={originalFrame} name={photo.name} metrics={metrics} position={comparison} onPositionChange={setComparison} /> : <div class="empty-state">
+            {photo && frame && originalFrame ? <ComparisonPreview revealForEdit={comparisonActivity.visible} key={`${photo.id}:${frame.geometryKey}`} client={api.current} recipe={recipe} detailEnabled={ready && !busy && !rendering} frame={frame} original={originalFrame} name={photo.name} metrics={metrics} position={comparison} onPositionChange={changeComparison} onThumbnail={(blob, key) => { if (activeSessionId.current === photo.sessionId && key === recipeKey(history.current.current)) library.update(photo.sessionId, { thumbnail: blob }); }} /> : <div class="empty-state">
               <div class="photo-illustration" aria-hidden="true"><div class="illustration-back" /><div class="illustration-front"><div class="illustration-sun" /><div class="illustration-hill hill-back" /><div class="illustration-hill hill-front" /><span class="illustration-spark">✦</span></div></div>
               <span class="eyebrow empty-eyebrow">A fresh point of view</span>
-              <h1>Your photo.<br />A little brighter.</h1>
-              <p>Drop a photo here and make it your own.<br />Simple adjustments, right in your browser.</p>
-              <button class="button button-primary button-large" disabled={!!busy || !ready} onClick={() => input.current?.click()}>Choose a photo<Icon name="arrow" size={18} /></button>
+              <h1>{resume ? <>Pick up where<br />you left off.</> : <>Your photo.<br />A little brighter.</>}</h1>
+              <p>{resume ? <>{resume.status === 'saved' ? 'Your photos and edits are saved in this browser.' : resume.status === 'session' ? 'Your photos and edits are available in this tab.' : 'Your photos and edits are being saved in this browser.'}<br /><span class="resume-photo-name" title={resume.document.name}>{resume.document.name}</span></> : <>Drop a photo here and make it your own.<br />Simple adjustments, right in your browser.</>}</p>
+              {resume && <button class="button button-primary button-large resume-photo" disabled={!!busy || !ready} onClick={() => void restorePhoto(resume.document.id)}>Resume photo<Icon name="arrow" size={18} /></button>}
+              <button class={`button ${resume ? 'button-quiet' : 'button-primary'} button-large`} disabled={!!busy || !ready} onClick={() => input.current?.click()}>Choose a photo<Icon name="arrow" size={18} /></button>
               <span class="format-note">JPEG, PNG, or WebP</span>
             </div>}
-            {busy === 'opening' && <div class="loading-overlay"><span class="spinner" /><span>Opening your photo…</span></div>}
+            {(busy === 'opening' || busy === 'restoring') && <div class="loading-overlay"><span class="spinner" /><span>{busy === 'restoring' ? 'Restoring your photo…' : 'Opening your photo…'}</span></div>}
           </div>
 
           <div class="stage-footer">
             <div class="photo-caption">{photo ? <><span class="photo-name" title={photo.name}>{photo.name}</span><span class="dimensions">{(frame?.outputWidth ?? photo.width).toLocaleString()} × {(frame?.outputHeight ?? photo.height).toLocaleString()}</span></> : <span>Open. Adjust. Make it yours.</span>}</div>
-            {photo && <div class="comparison-actions"><button class="button button-small button-quiet" disabled={disabled || comparison === 50} onClick={() => setComparison(50)}>Split view</button><button class={`button button-small ${comparison === 100 ? 'button-selected' : 'button-quiet'}`} disabled={disabled} aria-pressed={comparison === 100} onClick={() => setComparison(comparison === 100 ? 0 : 100)}>Show original</button></div>}
+            {photo && <div class="comparison-actions"><button class="button button-small button-quiet" disabled={disabled || comparison === 50} onClick={() => changeComparison(50)}>Split view</button><button class={`button button-small ${comparison === 100 ? 'button-selected' : 'button-quiet'}`} disabled={disabled} aria-pressed={comparison === 100} onClick={() => changeComparison(comparison === 100 ? 0 : 100)}>Show original</button></div>}
           </div>
         </section>
 

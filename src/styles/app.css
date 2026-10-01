@@ -270,3 +270,27 @@ h3 { margin: 0; font-size: 12px; font-weight: 600; }
   .comparison-actions { justify-content: flex-end; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+.stage { position: relative; }
+.photo-library > summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted); padding: 6px 0; }
+.photo-library > summary:focus-visible { outline: 3px solid #91a882; outline-offset: 4px; border-radius: 3px; }
+.photo-count { margin-left: 5px; font-variant-numeric: tabular-nums; }
+.photo-library-panel { position: absolute; z-index: 4; top: 65px; left: 16px; width: min(350px, calc(100% - 32px)); max-height: min(520px, calc(100% - 85px)); overflow-y: auto; background: #fff; color: #292d29; border: 1px solid var(--line); border-radius: 12px; padding: 14px; box-shadow: 0 12px 38px #0002; }
+.photo-library-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; }
+.photo-library-heading p { margin: 5px 0 0; color: var(--muted); font-size: 10px; }
+.photo-library-panel ul { padding: 0; list-style: none; margin: 12px 0; }
+.photo-library-row { border-top: 1px solid var(--line); padding: 9px 0; }
+.photo-library-item { display: flex; align-items: center; gap: 5px; }
+.photo-select { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: center; border: 0; background: transparent; color: inherit; text-align: left; padding: 6px; border-radius: 7px; }
+.photo-select:hover:not(:disabled), .photo-library-row.active .photo-select { background: #edf0e8; }
+.photo-select:disabled { opacity: 1; }
+.photo-select img, .photo-thumbnail-placeholder { width: 48px; height: 42px; object-fit: contain; flex-shrink: 0; border-radius: 4px; }
+.photo-thumbnail-placeholder { display: grid; place-items: center; background: #edf0e8; color: var(--muted); font-size: 22px; }
+.photo-row-text { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.photo-row-text strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 550; }
+.photo-row-text > span { color: var(--muted); font-size: 10px; }
+.photo-library-notice, .photo-row-note, .photo-removal p { color: var(--muted); font-size: 11px; line-height: 1.6; margin: 9px 0; }
+.photo-removal > div { display: flex; justify-content: flex-end; gap: 7px; }
+.photo-library-item > .icon-button { min-width: 28px; min-height: 32px; justify-content: center; font-size: 20px; color: var(--muted); }
+.resume-photo { margin-bottom: 10px; }
+.resume-photo-name { display: inline-block; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }

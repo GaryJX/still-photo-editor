@@ -6,7 +6,7 @@ Build a useful photo editor that runs entirely in the browser, uses Rust/WebAsse
 
 **Status:** Milestones 0–8 are complete for the documented supported formats. Version 1.1.0 is deployed and live-verified at https://garyjx.github.io/still-photo-editor/. The repository/local folder rename and tagline update are complete. Unsupported Adobe camera/profile-table formats and real-device testing limits are explicitly documented.
 
-**Next action:** No requested implementation work remains. Comparison visibility during edits and its one-second idle tail are deployed and live-verified. Preserve the release gates, stable preset identifiers, and documented format limits for future changes. Preset application semantics remain unchanged (the user asked for discussion only).
+**Next action:** Build browser session recovery and a compact photo list, then Highlights/Shadows/Whites/Blacks with XMP mappings. The user confirmed this focused scope; preset previews/strength, export resizing, and histogram remain future ideas.
 
 ## Product boundaries
 
@@ -107,7 +107,7 @@ XMP serialization is deferred to Milestone 6, after the current roadmap (Milesto
 
 Store imported presets in **IndexedDB**, including a local ID, display name, original XML, content hash, import time, parser version, normalized fields, and compatibility report. Hash matching avoids duplicate imports; allow renaming and deletion. Reparse the preserved XML when parser versions change.
 
-Use **localStorage** only for small UI preferences, such as the last expanded panel. Do not save full image buffers or uploaded photos there. The first release keeps the active photo and edit history in memory; reloading clears that session while saved presets remain.
+Use **localStorage** only for small UI preferences, such as the last expanded panel. Do not save full image buffers or uploaded photos there. Photo sessions use a separate IndexedDB database for original compressed bytes, thumbnails, recipe/history snapshots, and LUT dependencies. On return, Resume photo or the Photos list reopens a saved session. Storage failures retain the latest work in the current tab with a session-only status.
 
 If storage is unavailable or full, keep the preset usable for the current session and show a brief “Available for this session only” message. Browser storage can be cleared or evicted; describe saved presets as saved “in this browser,” and allow downloading the original XMP as a backup.
 
@@ -215,6 +215,22 @@ Requested by the user after encountering unsupported `Look` settings in real pre
 - [x] Verify view changes leave edits, history, exports, and leave warnings unchanged; reset the view for a new photo or geometry.
 - [x] Verify mouse, keyboard, touch, responsive layout, and cross-browser deployment.
 
+### 9. Saved photo sessions and a photo list — in progress
+
+- [x] Save original files, validated recipe/history snapshots, export baselines, comparison position, thumbnails, and required LUT dependencies in IndexedDB.
+- [x] Offer Resume photo on return and a compact list to switch among edited photos, retaining independent edits and history.
+- [x] Keep only the selected image decoded; write original files once and coalesce subsequent small document updates.
+- [x] Show Saving / Saved in this browser / Session only honestly. Storage failure must not prevent editing or switching within the current tab.
+- [x] Allow deliberate removal of stored photos/edits, and preserve the unexported-edit leave warning.
+- [ ] Verify reload, switching, history, exports, dependency restoration, storage failure, removal, and responsive/accessibility behavior; commit and deploy.
+
+### 10. More light controls — after saved sessions
+
+- [ ] Implement Highlights, Shadows, Whites, and Blacks in the shared Rust preview/detail/export pipeline, with documented SDR semantics.
+- [ ] Add beginner-facing controls, history/reset support, and explicit XMP import/export mappings.
+- [ ] Migrate saved recipes/history from the earlier engine version with zero defaults, preserving appearance and export baselines.
+- [ ] Verify tonal targeting, alpha/neutral behavior, preview/export agreement, XMP round-trips, restored sessions, and browser workflows; commit and deploy.
+
 ## Performance targets and verification
 
 These are initial targets, not established guarantees:
@@ -244,6 +260,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-10-01 — Photo sessions and list implemented:** added local originals/edited thumbnails, independent recipe/history snapshots, comparison/export baselines, LUT dependency persistence, a compact Photos list, Resume photo, and deliberate removal. Source files are stored once; metadata saves coalesce with a one-second checkpoint during continuous edits. Saved/session-only statuses and retry follow actual transaction outcomes. Local WebKit exposed Blob/File persistence failures, so storage uses exact binary buffers; restored files, undo history, and LUT-dependent framing all pass. The full WebKit run passed 55 workflows with one unavailable WebP encoder skip; 21 frontend tests and nine focused checkpoint/comparison/session checks pass. Desktop and 320 px layouts were reviewed. Cross-browser CI and live verification are next.
 
 - **2026-10-01 — Comparison while editing:** reveal the divider/handle/labels during actual adjustment gestures and for one second after release or the last committed change. Presets, numeric edits, framing, resets, and undo/redo share this presentation-only activity state. New photos clear it; lost window focus ends a held gesture. Hover, keyboard, and touch visibility still apply independently. The production build and focused WebKit comparison, adjustment, and curve checks pass, including clock-controlled tests of the held drag, one-second tail, timer restarts, preset application, no-op values, and photo replacement. A native range change event can precede release, so actual control pointer lifetime is tracked separately from history commits. [Run 36895037668](https://github.com/GaryJX/still-photo-editor/actions/runs/36895037668) passed all 156 browser checks and deployed `cd2c649`. Live verification confirmed a held drag stays visible beyond one second, the post-release delay, preset-triggered visibility, unchanged split position, and no page errors.
 

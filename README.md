@@ -14,7 +14,8 @@ Still includes a hover-revealed comparison divider, zoom and pan, global light/c
 
 ## Available now
 
-- Open or drop a JPEG, PNG, or WebP photo.
+- Open or drop a JPEG, PNG, or WebP photo. Use **Photos** above the image to switch among your photos, with independent edits, undo/redo, and comparison positions.
+- Save photo sessions automatically in this browser. On return, choose **Resume photo**, or reopen another photo from the list. Edited thumbnails help you find them.
 - Adjust exposure, contrast, warmth, tint, color intensity, and vibrance, with a responsive preview.
 - Edit the master and red/green/blue tone curves with draggable points, numeric values, and keyboard controls.
 - Adjust hue, intensity, and brightness for eight color ranges in **Color mix**, including matching XMP HSL fields.
@@ -28,11 +29,11 @@ Still includes a hover-revealed comparison divider, zoom and pan, global light/c
 - Import or export XMP presets, apply supported settings as one undo step, and save them in this browser. Rename, delete, or download the original file from the preset menu. See the [XMP compatibility guide](docs/xmp-support.md).
 - Get a native browser confirmation when refreshing, navigating away, or closing with unexported edits. No warning appears for defaults or the last exported recipe; changing the theme or comparison divider does not count as an edit.
 
-If the processing worker stops, **Recover editor** reloads the original file retained in this tab and reapplies the current edits without clearing history. This is in-memory recovery, not a saved image session.
+If the processing worker stops, **Recover editor** reloads the original file retained in this tab and reapplies the current edits without clearing history. Saved sessions also retain the original compressed file, edits/history, framing, export baseline, and LUT dependencies for later reopening. Only the selected photo is decoded.
 
-Images remain on the device. The original stays unchanged. Reloading clears the editing session. Source metadata is not preserved in exported PNGs; the processing pipeline uses SDR sRGB.
+Images remain on the device. The original stays unchanged. Wait for **Saved in this browser** before relying on session recovery. **Session only** means the latest work is retained in the current tab; use **Retry saving** in the photo list after freeing storage. Source metadata is not preserved in exported PNGs; the processing pipeline uses SDR sRGB.
 
-Leave-page protection clears after image generation succeeds and the download starts. Browsers do not expose whether a later file-save dialog was canceled. The confirmation uses `beforeunload`, so browser interaction/permission rules apply; it does not save or recover the image session.
+Leave-page protection clears after image generation succeeds and the download starts. Browsers do not expose whether a later file-save dialog was canceled. The confirmation uses `beforeunload`, so browser interaction/permission rules apply. The selected photo still warns about unexported edits, and inactive photos warn if their unexported edits have not been saved. Browser saving is separate from exporting an image.
 
 The roadmap is implemented for the documented supported formats. See the compatibility guides for Adobe profile dependencies and browser limits. The current interface contains only implemented controls.
 
@@ -43,6 +44,8 @@ The comparison divider and labels appear while hovering over the photo, using th
 Use **+ / −**, the mouse wheel over the photo, or a two-finger touch pinch to zoom. **100%** shows one source pixel per CSS screen pixel; **Fit** returns to the whole photo. When zoomed, drag the photo to pan and drag the divider to compare. Keyboard users can focus the zoomed image and use arrow keys to pan, +/− to zoom, and 0 to fit. Zoom ranges from Fit to 400%; a new photo, crop, or rotation resets the view. Scroll outside the image to move the page; Ctrl/Cmd-wheel keeps browser zoom.
 
 Zoomed detail comes from the original pixels. View changes never alter the recipe, history, XMP presets, export dimensions, or leave-page protection.
+
+Use the removal control in **Photos** to delete a photo session from browser storage. It does not delete your original file or your independently saved presets/LUTs. Browser storage can be cleared or evicted, so export images you want to keep; this is not cloud backup.
 
 ## Planned experience
 

@@ -84,4 +84,12 @@ The canvas is updated in a layout effect so the visible pixels agree with the co
 
 History stores up to 100 immutable recipe snapshots, groups a slider gesture into one step, and clears redo when a new edit is committed. It never stores full-image history buffers. Comparison position is independent of the recipe and history.
 
-XMP import maps a documented subset of fields to this recipe; see [xmp-support.md](xmp-support.md). This engine does not yet implement saved image sessions, wide-gamut/HDR output, or RAW development. No hidden alternative renderer or server-side image processing is used.
+XMP import maps a documented subset of fields to this recipe; see [xmp-support.md](xmp-support.md). This engine does not implement wide-gamut/HDR output or RAW development. No hidden alternative renderer or server-side image processing is used.
+
+## Saved photo sessions
+
+The photo library saves immutable compressed source bytes, small JPEG thumbnails, validated versioned recipe/history snapshots, the comparison position, export baseline, and required LUT data in IndexedDB. Binary buffers are used for sources and thumbnails because Blob/File serialization failed in the tested local WebKit build. Original bytes are written once; subsequent saves coalesce metadata updates after 300 ms of inactivity, with one-second checkpoints during continuous edits. A save status becomes complete only after its matching transaction commits. In-flight older saves cannot mark newer edits saved, and deletion waits for earlier writes to finish.
+
+Inactive photos retain metadata and thumbnails in memory, with originals read from storage when selected. If storage fails, the original and latest state remain available in the tab and the row offers Retry saving. Reload offers Resume photo rather than decoding a stored original before the user chooses it. Unknown or malformed saved versions are not reset silently. The selected photo retains its unexported-edit warning; unsaved inactive work is also protected. Saved inactive sessions do not require export merely to leave the page.
+
+Sessions are local browser data, not durable backups or synchronized projects. Clearing site data removes them. Removing a session deletes its source/metadata and unused session LUT copies, without removing independently saved preset-library assets.

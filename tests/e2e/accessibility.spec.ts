@@ -16,6 +16,9 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByLabel('Choose a photo', { exact: true }).setInputFiles({ name: 'accessible.png', mimeType: 'image/png', buffer: makePng(400, 300) });
     await expect(page.locator('[data-preview]')).toHaveAttribute('width', '400');
     await check('loaded');
+    await page.locator('.photo-library > summary').click();
+    await check('photo-library');
+    await page.locator('.photo-library > summary').press('Escape');
     await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
     await expect(page.locator('[data-detail="edited"]')).toBeAttached();
     await page.getByRole('slider', { name: 'Before and after comparison' }).focus();

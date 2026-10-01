@@ -24,10 +24,10 @@ function DetailCanvas({ frame, region, kind }: { frame: Frame; region: DetailReg
     style={{ left: `${region.x / frame.outputWidth * 100}%`, top: `${region.y / frame.outputHeight * 100}%`, width: `${region.width / frame.outputWidth * 100}%`, height: `${region.height / frame.outputHeight * 100}%` }} />;
 }
 
-export function ComparisonPreview({ frame, original, name, metrics, position, onPositionChange, client, recipe, detailEnabled, revealForEdit }: {
+export function ComparisonPreview({ frame, original, name, metrics, position, onPositionChange, client, recipe, detailEnabled, revealForEdit, onThumbnail }: {
   frame: Frame; original: Frame; name: string; metrics?: RenderMetrics;
   position: number; onPositionChange: (position: number) => void;
-  client?: EngineClient; recipe: Recipe; detailEnabled: boolean; revealForEdit: boolean;
+  client?: EngineClient; recipe: Recipe; detailEnabled: boolean; revealForEdit: boolean; onThumbnail?: (blob: Blob, recipeKey: string) => void;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const divider = useRef<HTMLDivElement>(null);
@@ -54,6 +54,23 @@ export function ComparisonPreview({ frame, original, name, metrics, position, on
 
   useLayoutEffect(() => draw(editedCanvas.current, frame), [frame]);
   useLayoutEffect(() => draw(originalCanvas.current, original), [original]);
+  const thumbnailCallback = useRef(onThumbnail);
+  thumbnailCallback.current = onThumbnail;
+  useEffect(() => {
+    let active = true;
+    const timeout = setTimeout(() => {
+      if (!editedCanvas.current || !thumbnailCallback.current) return;
+      const callback = thumbnailCallback.current;
+      const canvas = document.createElement('canvas');
+      const scale = Math.min(1, 128 / frame.width, 96 / frame.height);
+      canvas.width = Math.max(1, Math.round(frame.width * scale)); canvas.height = Math.max(1, Math.round(frame.height * scale));
+      const context = canvas.getContext('2d'); if (!context) return;
+      context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(editedCanvas.current, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => { if (active && blob) callback(blob, frame.recipeKey); }, 'image/jpeg', 0.75);
+    }, 250);
+    return () => { active = false; clearTimeout(timeout); };
+  }, [frame]);
   useLayoutEffect(() => {
     const element = viewport.current!;
     const observer = new ResizeObserver(() => {

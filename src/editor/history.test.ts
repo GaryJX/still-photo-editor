@@ -18,3 +18,15 @@ describe('edit history', () => {
     history.reset(0); expect(history.canUndo).toBe(false); expect(history.canRedo).toBe(false);
   });
 });
+
+describe('saved history', () => {
+  it('recovers an interrupted gesture as one undo step without mutating the live history', () => {
+    const live = new EditHistory<number>(0, String);
+    live.apply(1); live.preview(2); live.preview(3);
+    const restored = new EditHistory<number>(0, String); restored.restore(live.snapshot());
+    restored.undo(); expect(restored.current).toBe(1);
+    restored.redo(); expect(restored.current).toBe(3);
+    live.preview(4); live.commit(); live.undo(); expect(live.current).toBe(1);
+    restored.undo(); restored.undo(); expect(restored.current).toBe(0);
+  });
+});

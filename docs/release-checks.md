@@ -13,6 +13,7 @@ The release workflow builds the Rust/WASM engine and TypeScript application and 
 - XMP attributes/elements, namespace aliases, curves/HSL, partial settings, unsupported dependencies, malformed XML, and invalid numbers.
 - Preset persistence, duplicate detection, renaming, deletion, exact original-file backups, and unavailable-storage behavior.
 - Native leave-page protection, exports/defaults/undo baselines, worker recovery, and responsive controls.
+- Photo-session reload/switching, interrupted gesture history, export baselines, exact source retention, LUT dependencies, removal, unavailable storage, and retry.
 - Automated WCAG A/AA checks for light/dark empty and loaded views plus zoomed views and crop/export dialogs.
 - Repeated large imports, 100-event slider bursts, and 12/24 MP performance measurements.
 
@@ -25,7 +26,7 @@ The first Linux browser-matrix run passed 98 of 99 checks and exposed a numeric-
 - Processing is SDR sRGB. Browser decoders perform input color conversion; RAW, HDR, wide-gamut output, and exact Adobe rendering parity are outside the current engine.
 - Import limits are 60 MiB compressed, 40 MP decoded, and 16,384 pixels per side. The pixel limit is checked after decoding; it does not prevent every possible browser allocation. Generated images up to 24 MP have been benchmarked.
 - WASM capacity measurements exclude JavaScript, browser-image, and canvas allocations. Whole-tab peak memory and low-memory-device limits are not claimed.
-- Browser storage can be unavailable, full, or cleared. Presets have a session fallback and an original-file backup action; photo sessions remain in memory.
+- Browser storage can be unavailable, full, or cleared. Presets have a session fallback and an original-file backup action; photo sessions save originals and edits in IndexedDB, with a current-tab fallback when saving fails.
 - Native leave warnings depend on browser rules and user interaction. They do not provide crash/session recovery. A successful image download start clears the warning; a later cancelled operating-system save dialog cannot be detected.
 - Unsupported XMP fields are reported. External profile or LUT references are never fetched automatically. Supported curve looks and standard cube LUTs are tested; Adobe camera/profile-table dependencies remain explicit compatibility limits. See [look-support.md](look-support.md).
 
