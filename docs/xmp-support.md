@@ -27,7 +27,13 @@ Presets are stored in IndexedDB in this browser, including the original XML, a c
 
 When browser storage is unavailable or full, imports remain usable for the current session and the UI explains that they were not saved. Browser storage can also be cleared or evicted. **Download original XMP** backs up the exact imported file, including settings this editor cannot interpret.
 
-Exporting current edits as a new XMP preset is a separate, later roadmap milestone. The backup action does not serialize current image edits.
+## Export current edits
+
+**Save as preset** creates an XMP from the current light/color recipe. Choose a name, select the groups to include, and save in the browser and/or download the file. Source pixels, filenames, crop/rotation, theme, comparison position, and history are excluded. Saving an XMP does not clear the unexported-image warning.
+
+The writer shares the importer's field mappings and validates every value. Camera Raw integer fields and curve-point coordinates are emitted as integers; exposure remains a real value. Curves whose rounded input coordinates coincide are merged for the standard representation. A versioned `still:Settings` extension (`https://garyjx.github.io/wasm-image-editor/xmp/1.0/`) preserves full precision for reopening in Still. The importer validates this extension, strips unknown properties, and only overrides settings already represented by supported standard fields. Invalid precision metadata falls back to the standard XMP values and is reported.
+
+Field types were checked against the [Exiv2 Camera Raw schema definitions](https://github.com/Exiv2/exiv2/blob/main/src/properties.cpp). Browser round-trip tests verify names, curves, partial groups, precision, and rendered pixels. Lightroom/Camera Raw application testing was unavailable; their rendering can differ from Still's documented algorithms. **Download original XMP** remains an exact backup action, separate from exporting the current recipe.
 
 `Look`/creative-profile support is now a dedicated roadmap item. A look may require separate profile or lookup-table data, so feasibility depends on the actual preset and available dependencies. The first step is to inspect representative look blocks and improve missing-profile reporting; arbitrary Adobe profile compatibility is not promised.
 

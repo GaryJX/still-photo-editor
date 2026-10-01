@@ -150,6 +150,12 @@ svg { flex-shrink: 0; }
 .preset-menu button { border: 0; border-radius: 4px; color: #526247; background: #eef2e8; padding: 6px; font-size: 10px; }
 .preset-rename { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
 .preset-rename input { min-width: 0; width: 100%; border: 1px solid #dfe4d7; background: #f6f7f3; padding: 6px; font: inherit; font-size: 11px; color: inherit; border-radius: 4px; }
+.save-preset-trigger { width: 100%; margin-bottom: 20px; }
+.preset-title-input { display: block; width: 100%; padding: 9px; margin-top: 8px; border: 1px solid #dfe4d7; border-radius: 5px; background: #f6f7f3; color: inherit; font: inherit; }
+.preset-checkbox { display: flex; align-items: center; gap: 8px; margin: 14px 0; font-size: 12px; }
+.preset-checkbox input { accent-color: var(--accent); }
+.preset-groups { margin-top: 20px; font-size: 12px; }
+.preset-groups summary { cursor: pointer; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 30px; }
 .panel-heading .eyebrow { font-size: 8px; }
 h2 { margin: 8px 0 0; font-size: 21px; letter-spacing: -.6px; font-weight: 550; }

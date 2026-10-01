@@ -16,6 +16,8 @@ import { defaultExportOptions, formatExtensions, supportedExportFormats, type Ex
 import { defaultGeometry, displayCrop, fullCrop, geometryKey, snapCrop, sourceCrop, type Crop } from '../editor/geometry';
 import { emptyBand } from '../editor/hsl';
 import { PresetLibrary } from '../components/PresetLibrary';
+import { SavePresetDialog, type SavePresetOptions } from '../components/SavePresetDialog';
+import { presetPatch, serializeXmpPreset } from '../presets/export';
 import { applyPresetPatch, createPreset, MAX_XMP_BYTES, type SavedPreset } from '../presets/xmp';
 import { loadPresets, savePreset, deletePreset } from '../presets/storage';
 import { useUnsavedEditWarning } from '../editor/unsaved';
@@ -32,6 +34,7 @@ export function App() {
   const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
   const [lastExportedKey, setLastExportedKey] = useState<string>();
   const [exportDialog, setExportDialog] = useState(false);
+  const [savePresetDialog, setSavePresetDialog] = useState(false);
   const [exportOptions, setExportOptions] = useState(defaultExportOptions);
   const [formats, setFormats] = useState<ExportFormat[]>(['image/png']);
   useUnsavedEditWarning(!!photo, recipe, lastExportedKey);
@@ -41,7 +44,7 @@ export function App() {
   const originalGeometry = useRef('');
   const [cropSession, setCropSession] = useState<{ frame: Frame; initial: Crop; rotation: number }>();
   const [comparison, setComparison] = useState(50);
-  const [busy, setBusy] = useState<'opening' | 'exporting' | 'preset' | 'crop' | 'recovering' | null>(null);
+  const [busy, setBusy] = useState<'opening' | 'exporting' | 'preset' | 'crop' | 'recovering' | 'save-preset' | null>(null);
   const [presets, setPresets] = useState<SavedPreset[]>([]);
   const [presetReport, setPresetReport] = useState<SavedPreset>();
   const [storageNotice, setStorageNotice] = useState('');
@@ -70,7 +73,7 @@ export function App() {
       workerEpoch.current++;
       scheduler.current?.invalidate();
       setError(sourceFile.current ? 'The image processor stopped. Your photo and edits are still here. Choose Recover editor to continue.' : 'The image processor could not start. Choose Recover editor to retry.');
-      setReady(false); setBusy(null); setRendering(false); setCropSession(undefined); setExportDialog(false);
+      setReady(false); setBusy(null); setRendering(false); setCropSession(undefined); setExportDialog(false); setSavePresetDialog(false);
       busyRef.current = false;
     });
     api.current = client;
@@ -145,6 +148,24 @@ export function App() {
       setPresets(current => [preset, ...current.filter(item => item.id !== preset.id)]);
       busyRef.current = false;
       usePreset(preset);
+    } catch (failure) { setError(errorMessage(failure)); }
+    finally { busyRef.current = false; setBusy(null); }
+  }
+
+  async function saveCurrentPreset(options: SavePresetOptions) {
+    if (!photo || busyRef.current) return;
+    busyRef.current = true; setBusy('save-preset'); setError('');
+    try {
+      const xml = serializeXmpPreset(presetPatch(history.current.current, options.groups), options.name);
+      let preset = await createPreset(xml, `${options.name}.xmp`);
+      if (options.save) {
+        try { await savePreset(preset); }
+        catch { preset = { ...preset, sessionOnly: true }; setStorageNotice('This preset is available for this session only. Download its XMP file to keep a copy.'); }
+        setPresets(current => [preset, ...current.filter(item => item.id !== preset.id)]);
+      }
+      if (options.download) downloadOriginalPreset(preset);
+      setSavePresetDialog(false);
+      setNotice(preset.sessionOnly ? 'Preset ready for this session. Download its XMP to keep it.' : options.save ? `Saved ${preset.name}.` : 'Your XMP preset is ready.');
     } catch (failure) { setError(errorMessage(failure)); }
     finally { busyRef.current = false; setBusy(null); }
   }
@@ -254,13 +275,13 @@ export function App() {
       if (!(event.metaKey || event.ctrlKey) || event.altKey || event.key.toLowerCase() !== 'z') return;
       const target = event.target;
       if (target instanceof HTMLElement && (target.isContentEditable || target instanceof HTMLTextAreaElement || (target instanceof HTMLInputElement && target.type !== 'range'))) return;
-      if (!photo || busyRef.current || !ready || exportDialog) return;
+      if (!photo || busyRef.current || !ready || exportDialog || savePresetDialog) return;
       event.preventDefault();
       navigateHistory(event.shiftKey ? 'redo' : 'undo');
     }
     window.addEventListener('keydown', shortcut);
     return () => window.removeEventListener('keydown', shortcut);
-  }, [photo, ready, exportDialog]);
+  }, [photo, ready, exportDialog, savePresetDialog]);
 
   async function openCrop() {
     if (!api.current || !photo || busyRef.current || !ready) return;
@@ -329,7 +350,7 @@ export function App() {
   }
 
   const disabled = !photo || !!busy || !ready || !!cropSession;
-  const status = busy === 'opening' ? 'Opening your photo…' : busy === 'exporting' ? 'Preparing your full-size image…' : busy === 'preset' ? 'Reading your preset…' : busy === 'crop' ? 'Preparing crop preview…' : busy === 'recovering' ? 'Recovering your photo and edits…' : rendering ? 'Updating preview…' : notice;
+  const status = busy === 'opening' ? 'Opening your photo…' : busy === 'exporting' ? 'Preparing your full-size image…' : busy === 'preset' ? 'Reading your preset…' : busy === 'crop' ? 'Preparing crop preview…' : busy === 'recovering' ? 'Recovering your photo and edits…' : busy === 'save-preset' ? 'Saving your preset…' : rendering ? 'Updating preview…' : notice;
 
   return (
     <div class="app-shell"
@@ -393,6 +414,7 @@ export function App() {
           <div class="controls-content" id="editor-controls">
           <PresetLibrary presets={presets} disabled={!!busy || !ready} storageNotice={storageNotice} report={presetReport}
             onImport={() => presetInput.current?.click()} onApply={usePreset} onRename={(preset, name) => void renamePreset(preset, name)} onDelete={preset => void removePreset(preset)} onDownload={downloadOriginalPreset} />
+          <button class="button button-small button-quiet save-preset-trigger" disabled={disabled} onClick={() => { commitGesture(); setError(''); setSavePresetDialog(true); }}>Save as preset</button>
           <div class="history-toolbar">
             <button class="button button-small button-quiet" disabled={disabled || !history.current.canUndo} onClick={() => navigateHistory('undo')} title="Undo (⌘/Ctrl Z)">Undo</button>
             <button class="button button-small button-quiet" disabled={disabled || !history.current.canRedo} onClick={() => navigateHistory('redo')} title="Redo (⌘/Ctrl Shift Z)">Redo</button>
@@ -426,6 +448,7 @@ export function App() {
       </main>
 
       <footer class="app-footer"><span>Made for a moment of focus.</span><span role="status" aria-live="polite" class="operation-status">{status || 'Your photos stay on your device.'}</span></footer>
+      {savePresetDialog && <SavePresetDialog busy={busy === 'save-preset'} error={error} onSave={options => void saveCurrentPreset(options)} onCancel={() => setSavePresetDialog(false)} />}
       {exportDialog && frame && <ExportDialog width={frame.outputWidth} height={frame.outputHeight} formats={formats} initial={exportOptions} busy={busy === 'exporting'} error={error} onExport={options => void exportPhoto(options)} onCancel={() => setExportDialog(false)} />}
       {cropSession && <CropDialog frame={cropSession.frame} initial={cropSession.initial} onApply={selection => closeCrop(selection)} onCancel={() => closeCrop()} />}
       {dragging && <div class="drop-overlay"><div><Icon name="image" size={38} /><h2>Drop a photo or preset</h2><p>JPEG, PNG, WebP, or XMP · one at a time</p></div></div>}

@@ -6,7 +6,7 @@ Build a useful photo editor that runs entirely in the browser, uses Rust/WebAsse
 
 **Status:** Milestones 0–4 are implemented, including HSL, crop/rotation, export formats, recovery, and responsive controls. Dark mode and unsaved-edit protection are published. Release validation (Milestone 5) is in progress, followed by XMP export (6) and `Look`/profile compatibility (7). The user explicitly requested completing the entire roadmap and publishing each tested milestone.
 
-**Next action:** Implement XMP preset export, then the feasible `Look`/profile subset. Milestones 0–5 have passed their release checks; actual mobile-device testing and unavailable Adobe profile data are explicitly documented limitations. Then implement XMP export and the feasible `Look`/profile subset. Do not stop after a partial milestone unless a concrete external dependency blocks further progress.
+**Next action:** Implement the feasible `Look`/profile subset and actionable missing-dependency reporting. Milestones 0–5 passed their release checks; XMP export is implemented and entering CI. Actual mobile-device testing and unavailable Adobe profile data remain explicitly documented limitations. Then implement XMP export and the feasible `Look`/profile subset. Do not stop after a partial milestone unless a concrete external dependency blocks further progress.
 
 ## Product boundaries
 
@@ -183,13 +183,13 @@ If storage is unavailable or full, keep the preset usable for the current sessio
 
 Work on this only after completing the existing roadmap above. Requested by the user on 2026-09-30.
 
-- [ ] Add “Save as preset” for the current adjustment recipe, with an editable preset name and an option to keep it in the browser's preset library.
-- [ ] Add “Export XMP” to download supported global adjustments as a reusable `.xmp` preset.
-- [ ] Share import/export mappings and document approximate Adobe equivalents. Export only settings with an intentional mapping; clearly report app-specific or unsupported adjustments instead of claiming identical Lightroom rendering.
-- [ ] Exclude image pixels, comparison-divider position, theme, history, source paths, crop, and rotation from the reusable preset by default.
-- [ ] Use correct Camera Raw/RDF namespaces, escaping, names, identifiers, process-version metadata, and tone-curve arrays.
-- [ ] Verify edit → export → import round-trips in this app, including partial settings, RGB curves, names with special characters, and out-of-range/unsupported fields.
-- [ ] Validate external-editor compatibility where available and document what was actually tested.
+- [x] Add “Save as preset” for the current adjustment recipe, with an editable preset name and an option to keep it in the browser's preset library.
+- [x] Add “Export XMP” to download supported global adjustments as a reusable `.xmp` preset.
+- [x] Share import/export mappings and document approximate Adobe equivalents. Export only settings with an intentional mapping; clearly report app-specific or unsupported adjustments instead of claiming identical Lightroom rendering.
+- [x] Exclude image pixels, comparison-divider position, theme, history, source paths, crop, and rotation from the reusable preset by default.
+- [x] Use correct Camera Raw/RDF namespaces, escaping, names, identifiers, process-version metadata, and tone-curve arrays.
+- [x] Verify edit → export → import round-trips in this app, including partial settings, RGB curves, names with special characters, and out-of-range/unsupported fields.
+- [x] Validate external-editor compatibility where available and document what was actually tested.
 
 **Exit condition:** a user can save their look, download an XMP preset, and reapply it to another photo, with honest compatibility reporting.
 
@@ -236,6 +236,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-09-30 — XMP preset export:** added Save as preset with group selection, browser saving, and XMP download. Shared mapping/validation excludes photo-specific data. Standard fields use the Camera Raw integer/real schema; a validated, whitelisted precision extension keeps exact Still values without invalid native curve coordinates. Unit and browser tests cover invalid values, escaped names, partial exports, pixel round-trips, geometry exclusion, and invalid precision fallback. External Adobe application validation was unavailable and is documented. Core release validation completed before this milestone, as requested.
 
 - **2026-09-30 — Core roadmap release validated:** CI run [36823491967](https://github.com/GaryJX/wasm-image-editor/actions/runs/36823491967) passed and deployed the numeric-draft correction. Chromium, Firefox, and Linux WebKit passed the full matrix, including WebP, accessibility, recovery, memory stability, and 12/24 MP workflows. Local native tests and viewport reviews are recorded separately from real-device testing, which was not performed. Milestones 0–5 are complete within the documented SDR/browser constraints. Proceeding to XMP export, followed by `Look` support.
 

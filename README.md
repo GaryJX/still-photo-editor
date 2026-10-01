@@ -22,7 +22,7 @@ The editor, branded **Still**, now includes a draggable comparison divider, glob
 - Export PNG, JPEG, or WebP when supported by your browser. PNG/WebP preserve transparency; JPEG offers quality and white/black background controls.
 - Use the editor on desktop or a narrow screen, with keyboard-accessible controls and a collapsible mobile panel.
 - Switch between light and dark mode. The first visit follows your system setting; an explicit choice is remembered in this browser.
-- Import XMP presets, apply supported settings as one undo step, and save them in this browser. Rename, delete, or download the original file from the preset menu. See the [XMP compatibility guide](docs/xmp-support.md).
+- Import or export XMP presets, apply supported settings as one undo step, and save them in this browser. Rename, delete, or download the original file from the preset menu. See the [XMP compatibility guide](docs/xmp-support.md).
 - Get a native browser confirmation when refreshing, navigating away, or closing with unexported edits. No warning appears for defaults or the last exported recipe; changing the theme or comparison divider does not count as an edit.
 
 If the processing worker stops, **Recover editor** reloads the original file retained in this tab and reapplies the current edits without clearing history. This is in-memory recovery, not a saved image session.
@@ -31,9 +31,9 @@ Images remain on the device. The original stays unchanged. Reloading clears the 
 
 Leave-page protection clears after image generation succeeds and the download starts. Browsers do not expose whether a later file-save dialog was canceled. The confirmation uses `beforeunload`, so browser interaction/permission rules apply; it does not save or recover the image session.
 
-Release compatibility checks are next. The current interface contains only implemented controls.
+The core roadmap and XMP export are implemented; `Look`/profile compatibility is the remaining milestone. The current interface contains only implemented controls.
 
-Exporting your own edits as reusable XMP presets is also planned, after the current editing/import roadmap.
+Use **Save as preset** to keep the current look in this browser, download it as XMP, or both. You can select light, color, curves, and color-mix groups; crop and rotation are excluded.
 
 ## Planned experience
 

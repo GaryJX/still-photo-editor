@@ -1,24 +1,15 @@
-import { type Adjustment, type Recipe } from '../editor/recipe';
-import { validCurve, type CurveChannel, type CurvePoint, type Curves } from '../editor/curves';
-import { bandLabel, hslLabels, mergeHsl, xmpHslFields, type HslPatch } from '../editor/hsl';
+import type { Recipe } from '../editor/recipe';
+import { CRS, RDF, STILL, scalarFields, curveFields, restorePrecision, type PresetPatch } from './schema';
+export { CRS, RDF, scalarFields, curveFields, type PresetPatch } from './schema';
+import { validCurve, type CurvePoint } from '../editor/curves';
+import { bandLabel, hslLabels, mergeHsl, xmpHslFields } from '../editor/hsl';
 
-export const PARSER_VERSION = 2;
+export const PARSER_VERSION = 3;
 export const MAX_XMP_BYTES = 2 * 1024 * 1024;
-const CRS = 'http://ns.adobe.com/camera-raw-settings/1.0/';
-const RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
-export type PresetPatch = Partial<Record<Adjustment, number>> & { curves?: Partial<Curves>; hsl?: HslPatch };
 export interface ImportReport { applied: string[]; approximated: string[]; unsupported: string[]; invalid: string[]; warnings: string[] }
 export interface ParsedPreset { name: string; patch: PresetPatch; report: ImportReport }
 export interface SavedPreset extends ParsedPreset { id: string; xml: string; parserVersion: number; createdAt: number; sessionOnly?: boolean }
 
-const scalarFields: Record<string, [Adjustment, string]> = {
-  Exposure2012: ['exposure', 'Exposure'], Contrast2012: ['contrast', 'Contrast'],
-  Saturation: ['saturation', 'Color intensity'], Vibrance: ['vibrance', 'Vibrance'],
-  IncrementalTemperature: ['warmth', 'Warmth'], IncrementalTint: ['tint', 'Tint'],
-};
-const curveFields: Record<string, CurveChannel> = {
-  ToneCurvePV2012: 'master', ToneCurvePV2012Red: 'red', ToneCurvePV2012Green: 'green', ToneCurvePV2012Blue: 'blue',
-};
 const metadata = new Set(['Name', 'ShortName', 'SortName', 'Group', 'Description', 'UUID', 'Version', 'ProcessVersion', 'PresetType', 'Cluster', 'Copyright', 'ContactInfo', 'HasSettings', 'HasCrop', 'AlreadyApplied', 'ToneCurveName2012', 'CameraModelRestriction', 'CameraModel', 'CameraSerialNumber', 'RawFileName', 'Digest', 'IsStub', 'IsHidden', 'RequiresRGBTables', 'SupportsAmount']);
 const numeric = (value: string) => /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value) ? Number(value) : NaN;
 
@@ -30,6 +21,7 @@ export function parseXmp(xml: string, fallbackName: string): ParsedPreset {
   const fields = new Map<string, { text: string; element?: Element }>();
   const report: ImportReport = { applied: [], approximated: [], unsupported: [], invalid: [], warnings: [] };
   const duplicates = new Set<string>();
+  const precision: Element[] = [];
   const add = (key: string, text: string, element?: Element) => {
     if (fields.has(key)) duplicates.add(key);
     else fields.set(key, { text: text.trim(), element });
@@ -38,14 +30,17 @@ export function parseXmp(xml: string, fallbackName: string): ParsedPreset {
     // Nested RDF descriptions may describe masks or profiles, not global edits.
     if (description.parentElement?.namespaceURI !== RDF || description.parentElement.localName !== 'RDF') continue;
     for (const attribute of description.attributes) if (attribute.namespaceURI === CRS) add(attribute.localName, attribute.value);
-    for (const child of description.children) if (child.namespaceURI === CRS) add(child.localName, child.textContent ?? '', child);
+    for (const child of description.children) {
+      if (child.namespaceURI === CRS) add(child.localName, child.textContent ?? '', child);
+      else if (child.namespaceURI === STILL && child.localName === 'Settings') precision.push(child);
+    }
   }
   if (!fields.size) throw new Error('This XMP has no Camera Raw preset settings.');
   if (fields.size > 512) throw new Error('This XMP contains too many settings.');
   const patch: PresetPatch = {};
   for (const [key, field] of fields) {
     if (duplicates.has(key)) { report.invalid.push(`${key}: duplicate field`); continue; }
-    if (scalarFields[key]) {
+    if (Object.hasOwn(scalarFields, key)) {
       const [target, label] = scalarFields[key];
       const value = field.element?.childElementCount ? NaN : numeric(field.text);
       const limit = target === 'exposure' ? 4 : 100;
@@ -53,14 +48,14 @@ export function parseXmp(xml: string, fallbackName: string): ParsedPreset {
       patch[target] = value;
       report.applied.push(label);
       if (target !== 'exposure') report.approximated.push(label);
-    } else if (xmpHslFields[key]) {
+    } else if (Object.hasOwn(xmpHslFields, key)) {
       const [band, component] = xmpHslFields[key];
       const value = field.element?.childElementCount ? NaN : numeric(field.text);
       if (!Number.isFinite(value) || Math.abs(value) > 100) { report.invalid.push(`${key}: expected a number from -100 to 100`); continue; }
       patch.hsl ??= {}; patch.hsl[band] ??= {}; patch.hsl[band]![component] = value;
       const label = `${bandLabel(band)} ${hslLabels[component].toLowerCase()}`;
       report.applied.push(label); report.approximated.push(label);
-    } else if (curveFields[key]) {
+    } else if (Object.hasOwn(curveFields, key)) {
       const sequence = Array.from(field.element?.children ?? []).find(child => child.namespaceURI === RDF && child.localName === 'Seq');
       const points = sequence ? Array.from(sequence.children).map(item => {
         if (item.namespaceURI !== RDF || item.localName !== 'li' || item.childElementCount) return [NaN, NaN] as CurvePoint;
@@ -77,6 +72,12 @@ export function parseXmp(xml: string, fallbackName: string): ParsedPreset {
     } else if (!metadata.has(key) && !key.startsWith('Supports')) {
       report.unsupported.push(key === 'Temperature' || key === 'Tint' || key === 'WhiteBalance' ? `${key} (absolute RAW white balance)` : key);
     }
+  }
+  if (precision.length) {
+    try {
+      if (precision.length !== 1 || precision[0].getAttribute('version') !== '1') throw new Error('Unrecognized precision metadata');
+      restorePrecision(patch, JSON.parse(precision[0].textContent ?? ''));
+    } catch { report.invalid.push('Still full-precision settings were invalid; standard XMP values were used.'); }
   }
   return { name: (fields.get('Name')?.text || fallbackName.replace(/\.xmp$/i, '') || 'Imported preset').slice(0, 96), patch, report };
 }

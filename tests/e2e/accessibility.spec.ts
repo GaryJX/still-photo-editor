@@ -21,5 +21,8 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page.getByRole('button', { name: 'Export', exact: true }).click();
     await check('export');
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await page.getByRole('button', { name: 'Save as preset', exact: true }).click();
+    await check('save-preset');
   });
 }
