@@ -28,7 +28,7 @@ test('leave protection tracks edits, exports, undo, defaults, and photo replacem
   await setExposure(page, 1);
   expect(await guarded(page)).toBe(true);
   const waiting = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export PNG' }).click();
+  await page.getByRole('button', { name: 'Export', exact: true }).click(); await page.getByRole('button', { name: 'Export PNG', exact: true }).click();
   await waiting;
   await expect.poll(() => guarded(page)).toBe(false);
   await setExposure(page, 2);

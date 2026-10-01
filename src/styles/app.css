@@ -102,6 +102,13 @@ svg { flex-shrink: 0; }
 .dialog-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; }
 .dialog-footer > span { color: #66705f; font-size: 11px; }
 .dialog-footer > div { display: flex; gap: 8px; }
+.export-dialog { width: min(440px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); border: 1px solid var(--line); border-radius: 14px; padding: 24px; background: #fff; color: #292d29; }
+.export-dialog::backdrop { background: #101710a8; backdrop-filter: blur(3px); }
+.export-field { display: block; margin-top: 22px; font-size: 12px; }
+.export-field select { display: block; width: 100%; margin-top: 8px; padding: 9px; border: 1px solid #dfe4d7; border-radius: 5px; background: #f6f7f3; color: inherit; }
+.export-field input { display: block; width: 100%; margin-top: 12px; accent-color: var(--accent); }
+.export-field output { float: right; color: #66705f; }
+.export-error { padding: 10px; color: #8d452e; background: #fbefeb; border-radius: 5px; font-size: 12px; }
 .adjustment-control + .adjustment-control { margin-top: 26px; }
 .value-actions { display: flex; align-items: center; gap: 7px; }
 .reset-control { border: 0; background: transparent; color: #66745d; padding: 4px; font-size: 16px; line-height: 1; }

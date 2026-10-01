@@ -18,7 +18,7 @@ test('individual color edits render, export, and undo consistently', async ({ pa
   await page.getByRole('spinbutton', { name: 'Green intensity value' }).press('Tab');
   await expect.poll(async () => (await recipe(page)).hsl.green.saturation).toBe(-100);
   expect(await pixel(page)).toEqual([128, 128, 128, 255]);
-  const waiting = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export PNG' }).click();
+  const waiting = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export', exact: true }).click(); await page.getByRole('button', { name: 'Export PNG', exact: true }).click();
   const download = await waiting; const base64 = (await readFile((await download.path())!)).toString('base64');
   const exported = await page.evaluate(async encoded => {
     const bitmap = await createImageBitmap(new Blob([Uint8Array.from(atob(encoded), char => char.charCodeAt(0))], { type: 'image/png' }));

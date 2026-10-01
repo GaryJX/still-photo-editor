@@ -1,4 +1,5 @@
 import type { DecodedPhoto, PhotoInfo } from '../worker/types';
+import { defaultExportOptions, drawExport, type ExportOptions } from './encoding';
 
 export const PREVIEW_EDGE = 1600;
 export const MAX_PIXELS = 40_000_000;
@@ -46,16 +47,16 @@ export async function decodeOnMain(file: File): Promise<DecodedPhoto> {
   }
 }
 
-export async function encodeOnMain(pixels: Uint8Array, width: number, height: number): Promise<Blob> {
+export async function encodeOnMain(pixels: Uint8Array, width: number, height: number, options: ExportOptions = defaultExportOptions): Promise<Blob> {
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   try {
     const ctx = canvas.getContext('2d', { colorSpace: 'srgb' });
     if (!ctx) throw new Error('Your browser could not create an export canvas.');
-    ctx.putImageData(new ImageData(new Uint8ClampedArray(pixels.buffer as ArrayBuffer), width, height), 0, 0);
+    drawExport(ctx, pixels, width, height, options);
     return await new Promise<Blob>((resolve, reject) => canvas.toBlob(
-      (blob) => blob ? resolve(blob) : reject(new Error('PNG export failed. Please try again.')), 'image/png',
+      (blob) => blob?.type === options.format ? resolve(blob) : reject(new Error('This export format is unavailable in your browser.')), options.format, options.quality,
     ));
   } finally {
     canvas.width = canvas.height = 1;

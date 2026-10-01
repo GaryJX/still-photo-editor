@@ -1,4 +1,5 @@
 import type { Recipe } from '../editor/recipe';
+import type { ExportOptions } from '../editor/encoding';
 
 export interface PhotoInfo {
   width: number;
@@ -43,5 +44,5 @@ export interface EngineApi {
   open(file: File): Promise<LoadedPhoto | 'decode-on-main'>;
   openDecoded(photo: DecodedPhoto): Promise<LoadedPhoto>;
   render(recipe: Recipe, knownOriginalGeometry?: string): Frame;
-  exportPng(recipe: Recipe): Promise<ExportedPhoto>;
+  exportImage(recipe: Recipe, options: ExportOptions): Promise<ExportedPhoto>;
 }

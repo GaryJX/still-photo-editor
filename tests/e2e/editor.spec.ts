@@ -31,7 +31,7 @@ test('real WASM edit, comparison, full-size export, and reset', async ({ page })
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('./');
-  await expect(page.getByRole('button', { name: 'Export PNG' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Export', exact: true })).toBeDisabled();
   await page.getByLabel('Choose a photo', { exact: true }).setInputFiles({ name: 'test.png', mimeType: 'image/png', buffer: makePng() });
   await expect(page.locator('canvas[data-preview]')).toHaveAttribute('data-exposure', '0');
   expect(await pixel(page)).toEqual([128, 64, 0, 255]);
@@ -42,7 +42,7 @@ test('real WASM edit, comparison, full-size export, and reset', async ({ page })
   expect(await pixel(page)).toEqual([176, 90, 0, 255]);
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export PNG' }).click();
+  await page.getByRole('button', { name: 'Export', exact: true }).click(); await page.getByRole('button', { name: 'Export PNG', exact: true }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('test-edited.png');
   expect(await decodeDownload(page, await readFile((await download.path())!))).toEqual({ width: 64, height: 48, pixel: [176, 90, 0, 255] });
@@ -77,7 +77,7 @@ test('keyboard slider input and transparent PNG export work on a narrow viewport
   expect((await pixel(page))[3]).toBe(128);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export PNG' }).click();
+  await page.getByRole('button', { name: 'Export', exact: true }).click(); await page.getByRole('button', { name: 'Export PNG', exact: true }).click();
   const download = await downloadPromise;
   const result = await decodeDownload(page, await readFile((await download.path())!));
   expect(result.width).toBe(80);
@@ -150,7 +150,7 @@ test('12 MP and 24 MP preview/export baseline', async ({ page }, testInfo) => {
     }
     const start = performance.now();
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Export PNG' }).click();
+    await page.getByRole('button', { name: 'Export', exact: true }).click(); await page.getByRole('button', { name: 'Export PNG', exact: true }).click();
     const download = await downloadPromise;
     const exported = await readFile((await download.path())!);
     const exportMs = performance.now() - start;

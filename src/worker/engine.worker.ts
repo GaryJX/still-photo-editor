@@ -6,6 +6,7 @@ import { ENGINE_VERSION, initialRecipe, recipeKey, recipeValues, type Recipe } f
 import { curveValues } from '../editor/curves';
 import { hslValues } from '../editor/hsl';
 import { geometryKey, geometryLayout } from '../editor/geometry';
+import { drawExport, validateExport } from '../editor/encoding';
 
 const wasm = init();
 let memory: WebAssembly.Memory;
@@ -80,7 +81,8 @@ const api: EngineApi = {
     }
     return transfer(frame, buffers);
   },
-  async exportPng(recipe) {
+  async exportImage(recipe, options) {
+    validateExport(options);
     const started = performance.now();
     const frame = render(recipe, true);
     if (typeof OffscreenCanvas !== 'undefined') {
@@ -88,9 +90,9 @@ const api: EngineApi = {
       try {
         const ctx = canvas.getContext('2d', { colorSpace: 'srgb' });
         if (ctx && typeof canvas.convertToBlob === 'function') {
-          ctx.putImageData(new ImageData(new Uint8ClampedArray(frame.pixels.buffer as ArrayBuffer), frame.width, frame.height), 0, 0);
-          const blob = await canvas.convertToBlob({ type: 'image/png' });
-          return { blob, metrics: frame.metrics, totalMs: performance.now() - started };
+          drawExport(ctx, frame.pixels, frame.width, frame.height, options);
+          const blob = await canvas.convertToBlob({ type: options.format, quality: options.quality });
+          if (blob.type === options.format) return { blob, metrics: frame.metrics, totalMs: performance.now() - started };
         }
       } finally {
         canvas.width = canvas.height = 1;

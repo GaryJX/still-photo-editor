@@ -19,7 +19,7 @@ The editor, branded **Still**, now includes a draggable comparison divider, glob
 - Crop freely or use common aspect ratios, rotate in 90° steps, and undo framing changes. Both sides of the comparison keep the same framing.
 - Drag a centered before/after divider: original on the left, edits on the right. Move fully left for all edits or fully right for the original. Touch, arrow keys, Home/End, and a recenter button are supported.
 - Undo/redo edits, reset one control, or reset everything. A slider gesture is one undo step; ⌘/Ctrl+Z and ⌘/Ctrl+Shift+Z work outside text fields.
-- Export a full-size PNG while preserving transparency.
+- Export PNG, JPEG, or WebP when supported by your browser. PNG/WebP preserve transparency; JPEG offers quality and white/black background controls.
 - Use the editor on desktop or a narrow screen, with keyboard-accessible controls.
 - Switch between light and dark mode. The first visit follows your system setting; an explicit choice is remembered in this browser.
 - Import XMP presets, apply supported settings as one undo step, and save them in this browser. Rename, delete, or download the original file from the preset menu. See the [XMP compatibility guide](docs/xmp-support.md).
@@ -27,9 +27,9 @@ The editor, branded **Still**, now includes a draggable comparison divider, glob
 
 Images remain on the device. The original stays unchanged. Reloading clears the editing session. Source metadata is not preserved in exported PNGs; the processing pipeline uses SDR sRGB.
 
-Leave-page protection clears after PNG generation succeeds and the download starts. Browsers do not expose whether a later file-save dialog was canceled. The confirmation uses `beforeunload`, so browser interaction/permission rules apply; it does not save or recover the image session.
+Leave-page protection clears after image generation succeeds and the download starts. Browsers do not expose whether a later file-save dialog was canceled. The confirmation uses `beforeunload`, so browser interaction/permission rules apply; it does not save or recover the image session.
 
-JPEG/WebP export and final interface/compatibility checks are the next milestones. The current interface contains only implemented controls.
+Final interface and compatibility checks are next. The current interface contains only implemented controls.
 
 Exporting your own edits as reusable XMP presets is also planned, after the current editing/import roadmap.
 

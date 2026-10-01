@@ -10,6 +10,8 @@ import { AdjustmentSlider } from '../components/AdjustmentSlider';
 import { CurveEditor } from '../components/CurveEditor';
 import { HslEditor } from '../components/HslEditor';
 import { CropDialog } from '../components/CropDialog';
+import { ExportDialog } from '../components/ExportDialog';
+import { defaultExportOptions, formatExtensions, supportedExportFormats, type ExportFormat, type ExportOptions } from '../editor/encoding';
 import { defaultGeometry, displayCrop, fullCrop, geometryKey, snapCrop, sourceCrop, type Crop } from '../editor/geometry';
 import { emptyBand } from '../editor/hsl';
 import { PresetLibrary } from '../components/PresetLibrary';
@@ -28,6 +30,9 @@ export function App() {
   const [frame, setFrame] = useState<Frame>();
   const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
   const [lastExportedKey, setLastExportedKey] = useState<string>();
+  const [exportDialog, setExportDialog] = useState(false);
+  const [exportOptions, setExportOptions] = useState(defaultExportOptions);
+  const [formats, setFormats] = useState<ExportFormat[]>(['image/png']);
   useUnsavedEditWarning(!!photo, recipe, lastExportedKey);
   const history = useRef(new EditHistory(initialRecipe, recipeKey));
   const [, updateHistory] = useState(0);
@@ -131,6 +136,10 @@ export function App() {
     document.body.append(link); link.click(); link.remove();
     setTimeout(() => { URL.revokeObjectURL(url); downloadUrls.current.delete(url); }, 60_000);
   }
+
+  useEffect(() => {
+    void supportedExportFormats().then(setFormats).catch(() => setFormats(['image/png']));
+  }, []);
 
   async function openPhoto(file: File) {
     if (busyRef.current || !api.current || !ready) return;
@@ -245,7 +254,7 @@ export function App() {
     applyRecipe({ ...current, geometry: { ...current.geometry, rotation: (current.geometry.rotation + direction + 4) % 4 } });
   }
 
-  async function exportPhoto() {
+  async function exportPhoto(options: ExportOptions) {
     if (!api.current || !photo || busyRef.current) return;
     const exportedKey = recipeKey(recipe);
     busyRef.current = true;
@@ -254,18 +263,20 @@ export function App() {
     setNotice('');
     try {
       // Export the current edits even when the comparison view shows the original.
-      const result = await api.current.exportPng(recipe);
-      const blob = result.blob ?? await encodeOnMain(result.frame!.pixels, result.frame!.width, result.frame!.height);
+      const result = await api.current.exportImage(recipe, options);
+      const blob = result.blob ?? await encodeOnMain(result.frame!.pixels, result.frame!.width, result.frame!.height, options);
       setMetrics(result.metrics);
       const url = URL.createObjectURL(blob);
       downloadUrls.current.add(url);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${photo.name.replace(/\.[^.]+$/, '')}-edited.png`;
+      link.download = `${photo.name.replace(/\.[^.]+$/, '')}-edited.${formatExtensions[options.format]}`;
       document.body.append(link);
       link.click();
       link.remove();
       setLastExportedKey(exportedKey);
+      setExportOptions(options);
+      setExportDialog(false);
       setTimeout(() => { URL.revokeObjectURL(url); downloadUrls.current.delete(url); }, 60_000);
       setNotice('Your edited photo is ready.');
     } catch (failure) {
@@ -277,7 +288,7 @@ export function App() {
   }
 
   const disabled = !photo || !!busy || !ready || !!cropSession;
-  const status = busy === 'opening' ? 'Opening your photo…' : busy === 'exporting' ? 'Preparing your full-size PNG…' : busy === 'preset' ? 'Reading your preset…' : busy === 'crop' ? 'Preparing crop preview…' : rendering ? 'Updating preview…' : notice;
+  const status = busy === 'opening' ? 'Opening your photo…' : busy === 'exporting' ? 'Preparing your full-size image…' : busy === 'preset' ? 'Reading your preset…' : busy === 'crop' ? 'Preparing crop preview…' : rendering ? 'Updating preview…' : notice;
 
   return (
     <div class="app-shell"
@@ -297,7 +308,7 @@ export function App() {
         <div class="header-actions">
           <ThemeToggle />
           <button class="button button-quiet" disabled={!!busy || !ready} onClick={() => input.current?.click()}><Icon name="plus" size={17} />Open photo</button>
-          <button class="button button-primary" disabled={disabled} onClick={() => void exportPhoto()}><Icon name="download" size={17} />{busy === 'exporting' ? 'Exporting…' : 'Export PNG'}</button>
+          <button class="button button-primary" disabled={disabled} onClick={() => { setError(''); setExportDialog(true); }}><Icon name="download" size={17} />Export</button>
         </div>
       </header>
 
@@ -366,12 +377,13 @@ export function App() {
             onReset={band => applyRecipe({ ...history.current.current, hsl: { ...history.current.current.hsl, [band]: emptyBand() } })} />
           <div class="panel-bottom">
             <div class="tip"><span class="tip-mark"><Icon name="check" size={15} /></span><div><strong>Room to experiment</strong><p>Your original stays untouched. Reset your edits whenever you like.</p></div></div>
-            <div class="export-note"><span class="tiny-dot" />Full-size PNG export</div>
+            <div class="export-note"><span class="tiny-dot" />Full-resolution export</div>
           </div>
         </aside>
       </main>
 
       <footer class="app-footer"><span>Made for a moment of focus.</span><span role="status" aria-live="polite" class="operation-status">{status || 'Your photos stay on your device.'}</span></footer>
+      {exportDialog && frame && <ExportDialog width={frame.outputWidth} height={frame.outputHeight} formats={formats} initial={exportOptions} busy={busy === 'exporting'} error={error} onExport={options => void exportPhoto(options)} onCancel={() => setExportDialog(false)} />}
       {cropSession && <CropDialog frame={cropSession.frame} initial={cropSession.initial} onApply={selection => closeCrop(selection)} onCancel={() => closeCrop()} />}
       {dragging && <div class="drop-overlay"><div><Icon name="image" size={38} /><h2>Drop a photo or preset</h2><p>JPEG, PNG, WebP, or XMP · one at a time</p></div></div>}
     </div>

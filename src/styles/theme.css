@@ -67,4 +67,8 @@
 [data-theme="dark"] .crop-dialog { color: #e6ebe2; background: #1d231e; }
 [data-theme="dark"] .crop-options select, [data-theme="dark"] .crop-fine input { color: #d2e3c4; background: #293226; border-color: #414d3a; }
 [data-theme="dark"] .crop-fine, [data-theme="dark"] .dialog-footer > span { color: #aab7a2; }
+[data-theme="dark"] .export-dialog { color: #e6ebe2; background: #1d231e; }
+[data-theme="dark"] .export-field select { color: #d2e3c4; background: #293226; border-color: #414d3a; }
+[data-theme="dark"] .export-field output { color: #aab7a2; }
+[data-theme="dark"] .export-error { color: #f3c4b1; background: #402820; }
 @media (max-width: 370px) { .topbar { gap: 8px; } .header-actions { gap: 5px; } .header-actions .button { padding: 8px; font-size: 10px; } .header-actions .theme-toggle { width: 32px; } }

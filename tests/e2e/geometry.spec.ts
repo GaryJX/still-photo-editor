@@ -9,7 +9,7 @@ async function openPhoto(page: Page) {
 }
 async function pixel(page: Page, selector: string) { return page.locator(selector).evaluate(canvas => Array.from((canvas as HTMLCanvasElement).getContext('2d')!.getImageData(0, 0, 1, 1).data)); }
 async function exported(page: Page) {
-  const waiting = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export PNG' }).click();
+  const waiting = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export', exact: true }).click(); await page.getByRole('button', { name: 'Export PNG', exact: true }).click();
   const download = await waiting; const buffer = await readFile((await download.path())!);
   return page.evaluate(async encoded => {
     const bitmap = await createImageBitmap(new Blob([Uint8Array.from(atob(encoded), char => char.charCodeAt(0))], { type: 'image/png' }));

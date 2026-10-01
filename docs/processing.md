@@ -4,7 +4,7 @@
 
 The first engine accepts decoded 8-bit sRGB RGBA images. JPEG/PNG/WebP decoding uses browser APIs and honors EXIF orientation. A worker-side canvas requests sRGB pixel data; browsers without the required worker APIs fall back to a main-thread canvas. Color-profile behavior relies on the browser decoder and needs a wider fixture set before claiming broad profile compatibility.
 
-The source and a preview with a maximum edge of 1600 pixels are retained as immutable byte buffers in WASM. PNG export processes the full-size source. The browser encodes it in the worker when supported, with a main-thread encoding fallback. Export does not retain source EXIF/IPTC metadata.
+The source and a preview with a maximum edge of 1600 pixels are retained as immutable byte buffers in WASM. Image export processes the full-size source. The browser encodes PNG, JPEG, or WebP in the worker when supported, with a main-thread encoding fallback. Export formats are feature-tested and the actual output MIME type is checked, so unsupported codecs cannot silently create mislabeled files. JPEG flattens transparency onto the selected white or black background; PNG/WebP retain alpha. Export does not retain source EXIF/IPTC metadata.
 
 Current import limits are 60 MiB compressed, 40 megapixels decoded, and 16,384 pixels per side. The decoded-size check runs after browser decoding, so it does not guarantee avoiding every large-image allocation. Only generated inputs up to 24 MP have been measured so far; mobile memory limits need device testing.
 

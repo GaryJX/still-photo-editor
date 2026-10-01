@@ -26,7 +26,7 @@ test('master and RGB curves affect pixels and export the same result', async ({ 
   expect(colored[0]).toBeGreaterThan(lifted[0]);
   expect(colored.slice(1)).toEqual(lifted.slice(1));
   const waiting = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export PNG' }).click();
+  await page.getByRole('button', { name: 'Export', exact: true }).click(); await page.getByRole('button', { name: 'Export PNG', exact: true }).click();
   const download = await waiting;
   const base64 = (await readFile((await download.path())!)).toString('base64');
   const exported = await page.evaluate(async encoded => {
