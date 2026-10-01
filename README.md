@@ -29,7 +29,7 @@ Still includes a hover-revealed comparison divider, zoom and pan, global light/c
 - Import or export XMP presets, apply supported settings as one undo step, and save them in this browser. Rename, delete, or download the original file from the preset menu. See the [XMP compatibility guide](docs/xmp-support.md).
 - Get a native browser confirmation when refreshing, navigating away, or closing with unexported edits. No warning appears for defaults or the last exported recipe; changing the theme or comparison divider does not count as an edit.
 
-If the processing worker stops, **Recover editor** reloads the original file retained in this tab and reapplies the current edits without clearing history. Saved sessions also retain the original compressed file, edits/history, framing, export baseline, and LUT dependencies for later reopening. Only the selected photo is decoded.
+If the processing worker stops, **Recover editor** reloads the original file retained in this tab and reapplies the current edits without clearing history. Saved sessions also retain the original compressed file, edits/history, framing, export baseline, and LUT dependencies for later reopening. Only the selected photo stays decoded between edits.
 
 Images remain on the device. The original stays unchanged. Wait for **Saved in this browser** before relying on session recovery. **Session only** means the latest work is retained in the current tab; use **Retry saving** in the photo list after freeing storage. Source metadata is not preserved in exported PNGs; the processing pipeline uses SDR sRGB.
 

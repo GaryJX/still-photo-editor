@@ -44,3 +44,9 @@ The final Look/LUT tests include storage migration, fixed/zero amounts, missing/
 [Run 36892524564](https://github.com/GaryJX/still-photo-editor/actions/runs/36892524564) passed 21 Rust tests, 15 frontend tests, and all 150 browser checks, then deployed commit `1c5b001` to the renamed Pages URL. A fresh WebKit session verified the public URL, correct JavaScript/WASM loading, hover visibility, original-resolution detail, edited pixel values, full-resolution PNG download, and export/leave-warning state. No page errors or failed asset requests occurred.
 
 Renaming the repository temporarily exposed the old published artifact at the new URL; its old absolute asset paths returned 404. The corrected new-path deployment resolved this. Browser checks now run in the official version-matched Playwright Noble container to avoid the slow operating-system dependency installation that prolonged that outage. Both native/unit checks and the complete three-browser gate remain required before publishing.
+
+## Versions 1.2–1.3 result
+
+Saved photo sessions and the Photos list shipped in [run 36910528888](https://github.com/GaryJX/still-photo-editor/actions/runs/36910528888), with all 168 browser workflows passing. Expanded light controls and session migration shipped in [run 36911847646](https://github.com/GaryJX/still-photo-editor/actions/runs/36911847646): 24 Rust tests, 21 frontend tests, and all 177 browser workflows passed before deployment.
+
+Live checks covered independent photos, switching, Resume photo after reload, undo, saved light values, mapped XMP downloads, full-resolution PNG exports, and the export/leave-warning baseline. There were no page errors or failed assets. Local WebKit runs include an explicit unavailable-WebP encoder skip; all three CI browsers passed their WebP checks. Browser sessions are local and evictable, with an in-tab fallback on persistence failure; physical mobile-device coverage remains unclaimed.

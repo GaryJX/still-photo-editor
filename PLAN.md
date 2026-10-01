@@ -4,9 +4,9 @@
 
 Build a useful photo editor that runs entirely in the browser, uses Rust/WebAssembly for processing, and makes editing approachable for beginners. A user should be able to open a photo, apply an XMP preset or adjust a few controls, compare the result, and download the edited image.
 
-**Status:** Milestones 0–9 are complete for the documented supported formats. Version 1.2.0 is deployed and live-verified at https://garyjx.github.io/still-photo-editor/. The repository/local folder rename and tagline update are complete. Unsupported Adobe camera/profile-table formats and real-device testing limits are explicitly documented.
+**Status:** Milestones 0–10 are complete for the documented supported formats. Version 1.3.0 is deployed and live-verified at https://garyjx.github.io/still-photo-editor/. The repository/local folder rename and tagline update are complete. Unsupported Adobe camera/profile-table formats and real-device testing limits are explicitly documented.
 
-**Next action:** Publish and live-verify Highlights/Shadows/Whites/Blacks with XMP support and saved-session migration. The confirmed focus is session recovery, the photo list, and these light controls; the other suggestions remain future ideas.
+**Next action:** The confirmed scope is complete: session recovery, the photo list, and Highlights/Shadows/Whites/Blacks are deployed and live-verified. Preset previews/strength, export resizing, and histogram remain future ideas, outside this round.
 
 ## Product boundaries
 
@@ -224,12 +224,12 @@ Requested by the user after encountering unsupported `Look` settings in real pre
 - [x] Allow deliberate removal of stored photos/edits, and preserve the unexported-edit leave warning.
 - [x] Verify reload, switching, history, exports, dependency restoration, storage failure, removal, and responsive/accessibility behavior; commit and deploy.
 
-### 10. More light controls — after saved sessions
+### 10. More light controls — complete
 
 - [x] Implement Highlights, Shadows, Whites, and Blacks in the shared Rust preview/detail/export pipeline, with documented SDR semantics.
 - [x] Add beginner-facing controls, history/reset support, and explicit XMP import/export mappings.
 - [x] Migrate saved recipes/history from the earlier engine version with zero defaults, preserving appearance and export baselines.
-- [ ] Verify tonal targeting, alpha/neutral behavior, preview/export agreement, XMP round-trips, restored sessions, and browser workflows; commit and deploy.
+- [x] Verify tonal targeting, alpha/neutral behavior, preview/export agreement, XMP round-trips, restored sessions, and browser workflows; commit and deploy.
 
 ## Performance targets and verification
 
@@ -260,6 +260,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-10-01 — Focused roadmap complete:** [run 36911847646](https://github.com/GaryJX/still-photo-editor/actions/runs/36911847646) passed 24 Rust tests, 21 frontend tests, and all 177 browser checks, then deployed version 1.3.0 (`5c68e9e`). Live verification confirmed the four light values, edited pixels, mapped XMP output, full-resolution PNG export, reload/Resume photo with identical results, and the preserved export baseline, with no failed assets or page errors. Desktop/narrow dark layouts were reviewed. The earlier photo-list/recovery release also passed all 168 browser checks and its live workflow. Milestones 9–10 are complete; no additional feature scope was taken on.
 
 - **2026-10-01 — Saved sessions released:** [run 36910528888](https://github.com/GaryJX/still-photo-editor/actions/runs/36910528888) passed all 168 browser workflows and deployed version 1.2.0 (`cdb6684`). Live verification confirmed two independent photo sessions, edited pixels, switching, reload/Resume photo, and undo, with no page errors. Milestone 9 is complete.
 
