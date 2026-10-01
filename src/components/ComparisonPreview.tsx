@@ -28,7 +28,7 @@ export function ComparisonPreview({ frame, original, name, metrics, position, on
 
   return <div class="photo-frame comparison-preview" style={{ '--comparison': `${position}%` }}>
     <canvas ref={editedCanvas} data-preview aria-label={`Edited preview of ${name}`}
-      data-exposure={frame.exposure} data-render-ms={frame.metrics.renderMs}
+      data-exposure={frame.exposure} data-recipe={frame.recipeKey} data-render-ms={frame.metrics.renderMs}
       data-wasm-bytes={metrics?.wasmMemoryBytes} data-retained-bytes={metrics?.retainedBytes}
       style={{ aspectRatio: `${frame.width} / ${frame.height}` }} />
     <div class="comparison-original-layer" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}>

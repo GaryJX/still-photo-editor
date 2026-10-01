@@ -1,4 +1,4 @@
-# Processing contract: engine 0.1.0
+# Processing contract: engine 0.2.0
 
 ## Input and output
 
@@ -13,21 +13,31 @@ Current import limits are 60 MiB compressed, 40 megapixels decoded, and 16,384 p
 ```json
 {
   "schemaVersion": 1,
-  "engineVersion": "0.1.0",
-  "exposure": 0
+  "engineVersion": "0.2.0",
+  "exposure": 0,
+  "contrast": 0,
+  "warmth": 0,
+  "tint": 0,
+  "saturation": 0,
+  "vibrance": 0
 }
 ```
 
 Exposure is an absolute EV value in [-4, +4]. A +1 EV setting multiplies linear-light RGB by two. The source remains unchanged, and each render recomputes from it. Comparison clips a cached zero-exposure preview over the edited preview, with the original on the left. Moving the divider does not invoke the engine. Exporting still uses the current edit even while the original is displayed.
 
-For each color channel:
+The current operation order is:
 
 1. Convert the sRGB input to linear light using the standard piecewise sRGB transfer function.
-2. Multiply by `2^exposure`.
-3. Clamp to [0, 1], convert back to sRGB, and round to the nearest 8-bit value.
-4. Copy alpha unchanged.
+2. Multiply by `2^exposure` and the relative white-balance gains described below.
+3. Convert back to sRGB, apply contrast around 0.5, then clamp to [0, 1].
+4. Apply saturation/vibrance around weighted sRGB luma; clamp and round to the nearest 8-bit value.
+5. Copy alpha unchanged.
 
-The current single operation uses a 256-entry table computed in float precision. This is equivalent to evaluating that transform for each possible input byte and avoids expensive per-pixel powers. Future operations must compose with float intermediates before the final quantization; they should not chain independently quantized 8-bit passes.
+The first three operations are composed into three 256-entry float tables. Saturation/vibrance then operate on float RGB values for each pixel, with one final quantization. This avoids full-resolution float buffers and repeated per-pixel powers.
+
+All controls except exposure use [-100, 100]. With warmth `w` and tint `t` scaled to [-1, 1], white-balance gains are `[2^(0.4w + 0.2t), 2^(-0.2t), 2^(-0.4w + 0.2t)]`, normalized so their Rec.709-weighted sum is 1. These are relative color controls for rendered photos, not calibrated RAW Kelvin adjustments.
+
+Contrast maps each encoded channel `v` to `(v - 0.5) * 2^(contrast/100) + 0.5`. Saturation/vibrance use luma weights `[0.2126, 0.7152, 0.0722]` on encoded RGB, with a chroma multiplier `(1 + saturation/100) * (1 + vibrance/100 * (1 - (maxRGB - minRGB)))`. This is the editor's documented model, not an implementation of Adobe's proprietary algorithms.
 
 Example: `[128, 64, 0, 127]` at +1 EV becomes `[176, 90, 0, 127]`. Identity exposure preserves all byte values exactly inside the Rust engine. Browser canvas round-trips can still quantize partially transparent RGB values because of premultiplication.
 
@@ -41,4 +51,6 @@ The canvas is updated in a layout effect so the visible pixels agree with the co
 
 ## Deliberate limits
 
-This engine does not yet implement XMP import, other adjustments, crop, history, saved sessions, wide-gamut/HDR output, or RAW development. No hidden alternative renderer or server-side image processing is used.
+History stores up to 100 immutable recipe snapshots, groups a slider gesture into one step, and clears redo when a new edit is committed. It never stores full-image history buffers. Comparison position is independent of the recipe and history.
+
+This engine does not yet implement XMP import, curves/HSL, crop, saved sessions, wide-gamut/HDR output, or RAW development. No hidden alternative renderer or server-side image processing is used.

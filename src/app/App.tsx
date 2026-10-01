@@ -3,7 +3,9 @@ import { transfer, wrap, type Remote } from 'comlink';
 import { Icon } from '../components/Icon';
 import { ComparisonPreview } from '../components/ComparisonPreview';
 import { decodeOnMain, encodeOnMain, validatePhoto } from '../editor/image';
-import { exposureRecipe, initialRecipe, type Recipe } from '../editor/recipe';
+import { adjustmentValue, initialRecipe, recipeKey, type Adjustment, type Recipe } from '../editor/recipe';
+import { EditHistory } from '../editor/history';
+import { AdjustmentSlider } from '../components/AdjustmentSlider';
 import { LatestRenderer } from '../editor/scheduler';
 import type { EngineApi, Frame, PhotoInfo, RenderMetrics } from '../worker/types';
 
@@ -15,6 +17,8 @@ export function App() {
   const [photo, setPhoto] = useState<Photo>();
   const [frame, setFrame] = useState<Frame>();
   const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
+  const history = useRef(new EditHistory(initialRecipe, recipeKey));
+  const [, updateHistory] = useState(0);
   const [originalFrame, setOriginalFrame] = useState<Frame>();
   const [comparison, setComparison] = useState(50);
   const [busy, setBusy] = useState<'opening' | 'exporting' | null>(null);
@@ -73,7 +77,9 @@ export function App() {
       setFrame(loaded.frame);
       setOriginalFrame(loaded.frame);
       setMetrics(loaded.frame.metrics);
+      history.current.reset(initialRecipe);
       setRecipe(initialRecipe);
+      updateHistory(value => value + 1);
       setComparison(50);
     } catch (failure) {
       setError(`Couldn't open this photo. ${errorMessage(failure)}`);
@@ -87,14 +93,50 @@ export function App() {
     }
   }
 
-  function adjustExposure(value: number) {
-    if (!Number.isFinite(value) || busyRef.current || !photo) return;
-    const next = exposureRecipe(value);
+  function presentRecipe() {
+    const next = history.current.current;
     setRecipe(next);
+    updateHistory(value => value + 1);
     setRendering(true);
     setNotice('');
     scheduler.current?.request(next);
   }
+
+  function applyRecipe(next: Recipe, transient = false) {
+    if (busyRef.current || !photo || !ready) return;
+    if (transient) history.current.preview(next);
+    else history.current.apply(next);
+    presentRecipe();
+  }
+
+  function adjust(name: Adjustment, value: number, transient = false) {
+    if (!Number.isFinite(value)) return;
+    applyRecipe({ ...history.current.current, [name]: adjustmentValue(name, value) }, transient);
+  }
+
+  function commitGesture() {
+    history.current.commit();
+    updateHistory(value => value + 1);
+  }
+
+  function navigateHistory(direction: 'undo' | 'redo') {
+    if (busyRef.current || !photo || !ready) return;
+    history.current[direction]();
+    presentRecipe();
+  }
+
+  useEffect(() => {
+    function shortcut(event: KeyboardEvent) {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.key.toLowerCase() !== 'z') return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || target instanceof HTMLTextAreaElement || (target instanceof HTMLInputElement && target.type !== 'range'))) return;
+      if (!photo || busyRef.current || !ready) return;
+      event.preventDefault();
+      navigateHistory(event.shiftKey ? 'redo' : 'undo');
+    }
+    window.addEventListener('keydown', shortcut);
+    return () => window.removeEventListener('keydown', shortcut);
+  }, [photo, ready]);
 
   async function exportPhoto() {
     if (!api.current || !photo || busyRef.current) return;
@@ -184,12 +226,19 @@ export function App() {
 
         <aside class="controls" aria-label="Photo adjustments">
           <div class="panel-heading"><div><span class="eyebrow">Make it yours</span><h2>Adjustments</h2></div><span class="panel-icon"><Icon name="sun" size={22} /></span></div>
+          <div class="history-toolbar">
+            <button class="button button-small button-quiet" disabled={disabled || !history.current.canUndo} onClick={() => navigateHistory('undo')} title="Undo (⌘/Ctrl Z)">Undo</button>
+            <button class="button button-small button-quiet" disabled={disabled || !history.current.canRedo} onClick={() => navigateHistory('redo')} title="Redo (⌘/Ctrl Shift Z)">Redo</button>
+            <button class="text-button" disabled={disabled || recipeKey(recipe) === recipeKey(initialRecipe)} onClick={() => applyRecipe(initialRecipe)}><Icon name="reset" size={13} />Reset</button>
+          </div>
           <div class={`adjustment-section ${!photo ? 'inactive' : ''}`}>
-            <div class="section-heading"><h3>Light</h3><button class="text-button" disabled={disabled || recipe.exposure === 0} onClick={() => adjustExposure(0)}><Icon name="reset" size={13} />Reset</button></div>
-            <div class="slider-heading"><label for="exposure">Exposure</label><div class="numeric-control"><input aria-label="Exposure value" type="number" min="-4" max="4" step="0.05" value={recipe.exposure} disabled={disabled} onChange={(event) => { adjustExposure(event.currentTarget.valueAsNumber); event.currentTarget.value = String(recipe.exposure); }} /><span>EV</span></div></div>
-            <input id="exposure" class="exposure-slider" type="range" min="-4" max="4" step="0.05" value={recipe.exposure} disabled={disabled} aria-describedby="exposure-help" onInput={(event) => adjustExposure(event.currentTarget.valueAsNumber)} />
-            <div class="range-labels" aria-hidden="true"><span>Darker</span><span>Brighter</span></div>
-            <p id="exposure-help" class="control-help">Bring a little more light into your photo, or dial it back for a softer mood.</p>
+            <div class="section-heading"><h3>Light</h3></div>
+            {(['exposure', 'contrast'] as const).map(name => <AdjustmentSlider key={name} name={name} value={recipe[name]} disabled={disabled} onInput={value => adjust(name, value, true)} onCommit={commitGesture} onChange={value => adjust(name, value)} />)}
+          </div>
+          <div class={`adjustment-section ${!photo ? 'inactive' : ''}`}>
+            <div class="section-heading"><h3>Color</h3></div>
+            {(['warmth', 'tint', 'saturation'] as const).map(name => <AdjustmentSlider key={name} name={name} value={recipe[name]} disabled={disabled} onInput={value => adjust(name, value, true)} onCommit={commitGesture} onChange={value => adjust(name, value)} />)}
+            <details class="advanced-controls"><summary>More color controls</summary><AdjustmentSlider name="vibrance" value={recipe.vibrance} disabled={disabled} onInput={value => adjust('vibrance', value, true)} onCommit={commitGesture} onChange={value => adjust('vibrance', value)} /></details>
           </div>
           <div class="panel-bottom">
             <div class="tip"><span class="tip-mark"><Icon name="check" size={15} /></span><div><strong>Room to experiment</strong><p>Your original stays untouched. Reset your edits whenever you like.</p></div></div>

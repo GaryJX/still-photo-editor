@@ -4,9 +4,9 @@
 
 Build a useful photo editor that runs entirely in the browser, uses Rust/WebAssembly for processing, and makes editing approachable for beginners. A user should be able to open a photo, apply an XMP preset or adjust a few controls, compare the result, and download the edited image.
 
-**Status:** Milestones 0 and 1 complete. The first working slice is available locally; Milestones 2–5 remain open.
+**Status:** Milestones 0 and 1 complete and published. Milestone 2 now has global light/color controls, edit history, and the comparison divider; curves, HSL, and geometry remain. Milestones 3–5 remain open.
 
-**Next action:** Start Milestone 2 with a documented multi-control recipe and Rust contrast, warmth/tint, and saturation operations, then curves/HSL and history. Follow with XMP mapping and saved presets in Milestone 3. Keep new controls hidden until their renderers work.
+**Next action:** Add master/RGB curves, then publish an initial XMP importer and saved-preset library for the implemented controls. Finish HSL and crop/rotation afterwards, extending the XMP mapper as their renderers ship. This incremental sequence gets the user's preset workflow into testing sooner.
 
 ## Product boundaries
 
@@ -132,10 +132,11 @@ If storage is unavailable or full, keep the preset usable for the current sessio
 
 ### 2. Establish the editing engine and recipe
 
-- [ ] Define and document the versioned recipe, operation order, color transforms, and parameter ranges.
-- [ ] Implement contrast, warmth/tint, saturation/vibrance, master/RGB curves, and HSL bands.
+- [x] Define and document the versioned global-adjustment recipe, operation order, color transforms, and parameter ranges; extend it as new controls ship.
+- [x] Implement contrast, warmth/tint, and saturation/vibrance.
+- [ ] Implement master/RGB curves and HSL bands.
 - [ ] Implement normalized crop and 90-degree rotation with preview/export agreement.
-- [ ] Add recipe history, grouped slider gestures, per-control reset, and reset-all.
+- [x] Add recipe history, grouped slider gestures, per-control reset, and reset-all.
 - [x] Add before/after comparison using matching geometry. A centered, draggable divider now reveals cached original/edited previews; future crop/rotation must transform both consistently.
 - [ ] Verify identity settings, exposure math, curve endpoints, neutral color behavior, alpha handling, and operation-order fixtures.
 
@@ -204,6 +205,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-09-30 — Global color and history:** implemented engine 0.2.0 with contrast, normalized relative warmth/tint, saturation, and vibrance. Float tables compose point transforms before final quantization. Added six labeled controls, progressive disclosure for vibrance, bounded snapshot history, grouped slider gestures, per-control/global reset, and keyboard undo/redo. Eight Rust tests, four frontend tests, the production build, and nine functional WebKit workflows passed. The previous comparison deployment (`d271b24`) was verified on the live site.
 
 - **2026-09-30 — Before/after divider:** added a split preview starting at 50%, original left / edited right, with pointer capture, touch support, keyboard arrows/Home/End, recentering, and original-view shortcut. Comparison reuses cached previews, preserves the divider while editing, resets on a new photo, and leaves exports unchanged. Production build and seven functional WebKit checks passed under the Pages project path, including rendered-pixel checks at the midpoint and both endpoints.
 

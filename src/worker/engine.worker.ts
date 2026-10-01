@@ -2,7 +2,7 @@ import { expose, transfer } from 'comlink';
 import init, { ImageEngine } from '../../crates/image-engine/pkg/image_engine';
 import { imageInfo } from '../editor/image';
 import type { DecodedPhoto, EngineApi, Frame, LoadedPhoto, PhotoInfo } from './types';
-import type { Recipe } from '../editor/recipe';
+import { ENGINE_VERSION, initialRecipe, recipeKey, recipeValues, type Recipe } from '../editor/recipe';
 
 const wasm = init();
 let memory: WebAssembly.Memory;
@@ -15,20 +15,21 @@ async function openDecoded(photo: DecodedPhoto): Promise<LoadedPhoto> {
   engine?.free();
   engine = next;
   info = { width: photo.width, height: photo.height, previewWidth: photo.previewWidth, previewHeight: photo.previewHeight };
-  const frame = render({ schemaVersion: 1, engineVersion: '0.1.0', exposure: 0 });
+  const frame = render(initialRecipe);
   return transfer({ info, frame }, [frame.pixels.buffer as ArrayBuffer]);
 }
 
 function render(recipe: Recipe, fullResolution = false): Frame {
   if (!engine || !info) throw new Error('Open a photo first.');
-  if (recipe.schemaVersion !== 1 || recipe.engineVersion !== '0.1.0') throw new Error('This edit recipe is not supported.');
+  if (recipe.schemaVersion !== 1 || recipe.engineVersion !== ENGINE_VERSION) throw new Error('This edit recipe is not supported.');
   const started = performance.now();
-  const pixels = engine.render(recipe.exposure, fullResolution);
+  const pixels = engine.render(recipeValues(recipe), fullResolution);
   return {
     pixels,
     width: fullResolution ? info.width : info.previewWidth,
     height: fullResolution ? info.height : info.previewHeight,
     exposure: recipe.exposure,
+    recipeKey: recipeKey(recipe),
     metrics: { renderMs: performance.now() - started, wasmMemoryBytes: memory.buffer.byteLength, retainedBytes: engine.retained_bytes() },
   };
 }

@@ -23,6 +23,7 @@ export interface Frame {
   width: number;
   height: number;
   exposure: number;
+  recipeKey: string;
   metrics: RenderMetrics;
 }
 
