@@ -2,6 +2,7 @@ import { wrap, type Remote } from 'comlink';
 import type { EngineApi, DecodedPhoto, LoadedPhoto } from '../worker/types';
 import type { Recipe } from './recipe';
 import type { ExportOptions } from './encoding';
+import type { LutAsset } from './cube';
 
 /** Reject in-flight RPCs when a worker dies instead of leaving UI jobs pending. */
 export class EngineClient {
@@ -30,6 +31,8 @@ export class EngineClient {
     this.pending.clear();
   }
   ready() { return this.run(api => api.ready()).catch(error => { this.fail(error instanceof Error ? error : new Error(String(error))); throw error; }); }
+  importLut(file: File) { return this.run(api => api.importLut(file)); }
+  installLut(asset: LutAsset) { return this.run(api => api.installLut(asset)); }
   open(file: File) { return this.run<LoadedPhoto | 'decode-on-main'>(api => api.open(file)); }
   openDecoded(photo: DecodedPhoto) { return this.run(api => api.openDecoded(photo)); }
   render(recipe: Recipe, knownOriginalGeometry?: string) { return this.run(api => api.render(recipe, knownOriginalGeometry)); }

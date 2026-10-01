@@ -11,7 +11,8 @@ The editor imports a documented subset of Lightroom/Camera Raw preset settings. 
 | `ToneCurvePV2012`, `ToneCurvePV2012Red`, `ToneCurvePV2012Green`, `ToneCurvePV2012Blue` | 2–32 ordered points spanning input 0–255; piecewise-linear interpolation |
 | `HueAdjustment*`, `SaturationAdjustment*`, `LuminanceAdjustment*` | Approximate color-mix adjustments for Red, Orange, Yellow, Green, Aqua, Blue, Purple, and Magenta; -100 to +100 |
 | `Temperature`, `Tint`, `WhiteBalance` | Unsupported absolute RAW white balance; there is no reliable mapping without the source camera/color context |
-| Grading/calibration, profiles/LUTs, highlights/shadows, clarity/dehaze, sharpening/noise reduction, grain/vignette, masks/healing, geometry | Unsupported in the current importer; listed in the compatibility report |
+| `Look` | Self-contained curve looks are supported; Adobe camera-profile/table dependencies are named and reported. See [look-support.md](look-support.md). |
+| Grading/calibration, unavailable Adobe profiles/tables, highlights/shadows, clarity/dehaze, sharpening/noise reduction, grain/vignette, masks/healing, geometry | Unsupported in the current importer; listed in the compatibility report |
 
 The parser supports attributes and element-form scalar values, namespace-prefix variations, and RDF sequence curve arrays. It reads only Camera Raw settings on top-level RDF descriptions, so exposure values inside a local mask cannot accidentally become global adjustments. It recognizes common process-version markers; unrecognized versions are flagged while explicitly supported fields retain their documented mappings. Legacy fields such as `Exposure` are not silently treated as `Exposure2012`.
 
@@ -35,7 +36,7 @@ The writer shares the importer's field mappings and validates every value. Camer
 
 Field types were checked against the [Exiv2 Camera Raw schema definitions](https://github.com/Exiv2/exiv2/blob/main/src/properties.cpp). Browser round-trip tests verify names, curves, partial groups, precision, and rendered pixels. Lightroom/Camera Raw application testing was unavailable; their rendering can differ from Still's documented algorithms. **Download original XMP** remains an exact backup action, separate from exporting the current recipe.
 
-`Look`/creative-profile support is now a dedicated roadmap item. A look may require separate profile or lookup-table data, so feasibility depends on the actual preset and available dependencies. The first step is to inspect representative look blocks and improve missing-profile reporting; arbitrary Adobe profile compatibility is not promised.
+`Look` support and standalone `.cube` LUTs are implemented for the documented subset. Missing Adobe dependencies remain explicit. LUT references use the Still namespace and require the matching file in another browser; they are not represented as Adobe table data. See [look-support.md](look-support.md).
 
 ## Validation
 

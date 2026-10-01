@@ -1,4 +1,4 @@
-# Processing contract: engine 0.5.0
+# Processing contract: engine 0.6.0
 
 ## Input and output
 
@@ -13,7 +13,7 @@ Current import limits are 60 MiB compressed, 40 megapixels decoded, and 16,384 p
 ```json
 {
   "schemaVersion": 1,
-  "engineVersion": "0.5.0",
+  "engineVersion": "0.6.0",
   "exposure": 0,
   "contrast": 0,
   "warmth": 0,
@@ -38,8 +38,9 @@ The current operation order is:
 3. Convert back to sRGB, apply contrast around 0.5, then clamp to [0, 1].
 4. Apply the master curve, then the corresponding RGB channel curve.
 5. Apply saturation/vibrance around weighted sRGB luma and clamp.
-6. Apply color mix in HSL, then round to the nearest 8-bit value.
-7. Copy alpha unchanged.
+6. Apply color mix in HSL.
+7. Apply the optional curve look or LUT, blend by its amount, and quantize once.
+8. Copy alpha unchanged.
 
 The first four operations are composed into three 256-entry float tables. Saturation/vibrance then operate on float RGB values for each pixel, with one final quantization. This avoids full-resolution float buffers and repeated per-pixel powers.
 
@@ -52,6 +53,8 @@ Contrast maps each encoded channel `v` to `(v - 0.5) * 2^(contrast/100) + 0.5`. 
 Example: `[128, 64, 0, 127]` at +1 EV becomes `[176, 90, 0, 127]`. Identity exposure preserves all byte values exactly inside the Rust engine. Browser canvas round-trips can still quantize partially transparent RGB values because of premultiplication.
 
 Color mix adds an `hsl` recipe object with hue/saturation/luminance values for red, orange, yellow, green, aqua, blue, purple, and magenta (all default to zero). Hue centers are 0°, 30°, 60°, 120°, 180°, 240°, 270°, and 300°. Adjacent ranges blend linearly, including the red wraparound. Hue values map to ±30°, saturation multiplies by 0–2, and luminance offsets HSL lightness by up to ±0.5. Effects fade near neutral colors using `min(1, HSL saturation * 4)`; exact grays remain unchanged. Zero settings bypass HSL conversion. Adobe equivalence is approximate.
+
+The recipe also has `look: null` by default. Supported curve looks and referenced LUTs are defined in [look-support.md](look-support.md). Rendering identity excludes look names/UUIDs and treats zero amount as inactive. LUT data is cached separately from recipe/history snapshots and restored when a worker is recovered.
 
 ## Framing
 

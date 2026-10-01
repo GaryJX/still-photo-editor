@@ -1,10 +1,13 @@
 import type { Recipe } from '../editor/recipe';
 import { CRS, RDF, STILL, scalarFields, curveFields, restorePrecision, type PresetPatch } from './schema';
 export { CRS, RDF, scalarFields, curveFields, type PresetPatch } from './schema';
-import { validCurve, type CurvePoint } from '../editor/curves';
+import { validCurve } from '../editor/curves';
+import { cleanLook } from '../editor/look';
+import { readLook } from './look';
+import { readCurveField } from './curve-field';
 import { bandLabel, hslLabels, mergeHsl, xmpHslFields } from '../editor/hsl';
 
-export const PARSER_VERSION = 3;
+export const PARSER_VERSION = 4;
 export const MAX_XMP_BYTES = 2 * 1024 * 1024;
 export interface ImportReport { applied: string[]; approximated: string[]; unsupported: string[]; invalid: string[]; warnings: string[] }
 export interface ParsedPreset { name: string; patch: PresetPatch; report: ImportReport }
@@ -22,6 +25,7 @@ export function parseXmp(xml: string, fallbackName: string): ParsedPreset {
   const report: ImportReport = { applied: [], approximated: [], unsupported: [], invalid: [], warnings: [] };
   const duplicates = new Set<string>();
   const precision: Element[] = [];
+  const localLooks: Element[] = [];
   const add = (key: string, text: string, element?: Element) => {
     if (fields.has(key)) duplicates.add(key);
     else fields.set(key, { text: text.trim(), element });
@@ -33,6 +37,7 @@ export function parseXmp(xml: string, fallbackName: string): ParsedPreset {
     for (const child of description.children) {
       if (child.namespaceURI === CRS) add(child.localName, child.textContent ?? '', child);
       else if (child.namespaceURI === STILL && child.localName === 'Settings') precision.push(child);
+      else if (child.namespaceURI === STILL && child.localName === 'Look') localLooks.push(child);
     }
   }
   if (!fields.size) throw new Error('This XMP has no Camera Raw preset settings.');
@@ -56,22 +61,28 @@ export function parseXmp(xml: string, fallbackName: string): ParsedPreset {
       const label = `${bandLabel(band)} ${hslLabels[component].toLowerCase()}`;
       report.applied.push(label); report.approximated.push(label);
     } else if (Object.hasOwn(curveFields, key)) {
-      const sequence = Array.from(field.element?.children ?? []).find(child => child.namespaceURI === RDF && child.localName === 'Seq');
-      const points = sequence ? Array.from(sequence.children).map(item => {
-        if (item.namespaceURI !== RDF || item.localName !== 'li' || item.childElementCount) return [NaN, NaN] as CurvePoint;
-        const values = (item.textContent ?? '').split(',').map(value => numeric(value.trim()) / 255);
-        return values.length === 2 ? values as CurvePoint : [NaN, NaN] as CurvePoint;
-      }) : [];
+      const points = readCurveField(field.element);
       if (!validCurve(points)) { report.invalid.push(`${key}: expected 2–32 ordered points spanning input 0 to 255`); continue; }
       patch.curves ??= {};
       patch.curves[curveFields[key]] = points;
       const label = `${curveFields[key] === 'master' ? 'Master' : curveFields[key]} curve`;
       report.applied.push(label); report.approximated.push(label);
+    } else if (key === 'Look') {
+      const parsed = readLook(field.element, field.element ? 'Unnamed look' : field.text);
+      if (parsed.look) { patch.look = parsed.look; report.applied.push(`Look: ${parsed.look.name}`); report.approximated.push(`Look: ${parsed.look.name}`); }
+      else report.unsupported.push(parsed.message!);
     } else if (key === 'ProcessVersion') {
       if (!['6.7', '10.0', '11.0', '15.0', '15.4'].includes(field.text)) report.warnings.push(`Unrecognized ProcessVersion ${field.text.slice(0, 40)}; only explicitly supported fields are interpreted.`);
     } else if (!metadata.has(key) && !key.startsWith('Supports')) {
       report.unsupported.push(key === 'Temperature' || key === 'Tint' || key === 'WhiteBalance' ? `${key} (absolute RAW white balance)` : key);
     }
+  }
+  if (localLooks.length) {
+    try {
+      if (localLooks.length !== 1 || fields.has('Look') || localLooks[0].getAttribute('version') !== '1') throw new Error('Conflicting look data');
+      patch.look = cleanLook(JSON.parse(localLooks[0].textContent ?? ''));
+      report.applied.push(patch.look ? `Look: ${patch.look.name}` : 'Look reset');
+    } catch { report.invalid.push('Still look metadata was invalid or conflicted with a Camera Raw look.'); }
   }
   if (precision.length) {
     try {

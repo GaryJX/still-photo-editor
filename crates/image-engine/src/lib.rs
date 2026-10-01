@@ -1,5 +1,6 @@
 mod geometry;
 mod hsl;
+mod lut;
 use wasm_bindgen::prelude::*;
 
 /// Own the decoded source and smaller preview in WASM memory. Neither is edited
@@ -8,6 +9,7 @@ use wasm_bindgen::prelude::*;
 pub struct ImageEngine {
     source: Vec<u8>,
     preview: Vec<u8>,
+    lut: Option<lut::Lut>,
 }
 
 #[wasm_bindgen]
@@ -21,7 +23,22 @@ impl ImageEngine {
         {
             return Err(JsValue::from_str("Invalid RGBA image"));
         }
-        Ok(Self { source, preview })
+        Ok(Self {
+            source,
+            preview,
+            lut: None,
+        })
+    }
+
+    pub fn set_lut(
+        &mut self,
+        kind: u32,
+        size: u32,
+        domain: &[f32],
+        data: Vec<f32>,
+    ) -> Result<(), JsValue> {
+        self.lut = Some(lut::Lut::new(kind, size, domain, data).map_err(JsValue::from_str)?);
+        Ok(())
     }
 
     pub fn render(
@@ -29,12 +46,32 @@ impl ImageEngine {
         values: &[f32],
         curve_values: &[f32],
         hsl_values: &[f32],
+        look_values: &[f32],
+        look_amount: f32,
+        use_lut: bool,
         layout: &[u32],
         full_resolution: bool,
     ) -> Result<Vec<u8>, JsValue> {
         let settings = validate_settings(values).map_err(JsValue::from_str)?;
         let curves = parse_curves(curve_values).map_err(JsValue::from_str)?;
         let bands = hsl::parse(hsl_values).map_err(JsValue::from_str)?;
+        if !look_amount.is_finite() || !(0.0..=2.0).contains(&look_amount) {
+            return Err(JsValue::from_str("Invalid look amount"));
+        }
+        let look_curves = if !use_lut && look_amount > 0.0 {
+            Some(parse_curves(look_values).map_err(JsValue::from_str)?)
+        } else {
+            None
+        };
+        let profile = if look_amount == 0.0 {
+            None
+        } else if use_lut {
+            Some(Profile::Lut(self.lut.as_ref().ok_or_else(|| {
+                JsValue::from_str("Import the required LUT file first")
+            })?))
+        } else {
+            Some(Profile::Curves(look_curves.as_ref().unwrap()))
+        };
         let input = if full_resolution {
             &self.source
         } else {
@@ -42,12 +79,19 @@ impl ImageEngine {
         };
         let geometry = geometry::Layout::parse(layout, input.len()).map_err(JsValue::from_str)?;
         let mut output = geometry.transform(input);
-        apply_adjustments_in_place(&mut output, &settings, &curves, &bands);
+        apply_adjustments_in_place(
+            &mut output,
+            &settings,
+            &curves,
+            &bands,
+            profile,
+            look_amount,
+        );
         Ok(output)
     }
 
     pub fn retained_bytes(&self) -> usize {
-        self.source.len() + self.preview.len()
+        self.source.len() + self.preview.len() + self.lut.as_ref().map_or(0, |lut| lut.bytes())
     }
 }
 
@@ -81,6 +125,10 @@ fn validate_settings(values: &[f32]) -> Result<[f32; 6], &'static str> {
 }
 
 type Curve = Vec<(f32, f32)>;
+enum Profile<'a> {
+    Curves(&'a [Curve; 4]),
+    Lut(&'a lut::Lut),
+}
 
 fn parse_curves(values: &[f32]) -> Result<[Curve; 4], &'static str> {
     let mut offset = 0;
@@ -135,7 +183,7 @@ fn apply_adjustments(
     bands: &hsl::Bands,
 ) -> Vec<u8> {
     let mut output = input.to_vec();
-    apply_adjustments_in_place(&mut output, settings, curves, bands);
+    apply_adjustments_in_place(&mut output, settings, curves, bands, None, 0.0);
     output
 }
 
@@ -144,8 +192,11 @@ fn apply_adjustments_in_place(
     settings: &[f32; 6],
     curves: &[Curve; 4],
     bands: &hsl::Bands,
+    profile: Option<Profile<'_>>,
+    look_amount: f32,
 ) {
-    if settings.iter().all(|v| *v == 0.0)
+    if profile.is_none()
+        && settings.iter().all(|v| *v == 0.0)
         && bands.iter().flatten().all(|v| *v == 0.0)
         && curves
             .iter()
@@ -202,6 +253,20 @@ fn apply_adjustments_in_place(
         if mix_colors {
             color = hsl::apply(color, bands);
         }
+        if let Some(profile) = &profile {
+            let transformed = match profile {
+                Profile::Lut(table) => table.apply(color),
+                Profile::Curves(curves) => std::array::from_fn(|channel| {
+                    evaluate_curve(
+                        &curves[channel + 1],
+                        evaluate_curve(&curves[0], color[channel]),
+                    )
+                }),
+            };
+            for channel in 0..3 {
+                color[channel] += (transformed[channel] - color[channel]) * look_amount;
+            }
+        }
         for channel in 0..3 {
             pixel[channel] = (color[channel].clamp(0.0, 1.0) * 255.0).round() as u8;
         }
@@ -249,6 +314,26 @@ mod tests {
         );
     }
     #[test]
+    fn look_amount_blends_without_changing_alpha() {
+        let table = lut::Lut::new(
+            1,
+            2,
+            &[0., 0., 0., 1., 1., 1.],
+            vec![1., 1., 1., 0., 0., 0.],
+        )
+        .unwrap();
+        let mut pixels = vec![0, 255, 0, 123];
+        apply_adjustments_in_place(
+            &mut pixels,
+            &[0.; 6],
+            &parse_curves(&IDENTITY).unwrap(),
+            &[[0.; 3]; 8],
+            Some(Profile::Lut(&table)),
+            0.5,
+        );
+        assert_eq!(pixels, [128, 128, 128, 123]);
+    }
+    #[test]
     fn malformed_curves_are_rejected() {
         assert!(parse_curves(&[]).is_err());
         let mut values = IDENTITY;
@@ -293,6 +378,9 @@ mod tests {
                 &exposure(2.0),
                 &IDENTITY,
                 &[0.0; 24],
+                &[],
+                0.0,
+                false,
                 &[1, 1, 0, 0, 1, 1, 0],
                 false,
             )
@@ -303,6 +391,9 @@ mod tests {
                     &exposure(2.0),
                     &IDENTITY,
                     &[0.0; 24],
+                    &[],
+                    0.0,
+                    false,
                     &[1, 1, 0, 0, 1, 1, 0],
                     false
                 )
@@ -315,6 +406,9 @@ mod tests {
                     &exposure(0.0),
                     &IDENTITY,
                     &[0.0; 24],
+                    &[],
+                    0.0,
+                    false,
                     &[1, 1, 0, 0, 1, 1, 0],
                     true
                 )
@@ -327,6 +421,9 @@ mod tests {
                     &exposure(-1.0),
                     &IDENTITY,
                     &[0.0; 24],
+                    &[],
+                    0.0,
+                    false,
                     &[1, 1, 0, 0, 1, 1, 0],
                     false
                 )
@@ -336,6 +433,9 @@ mod tests {
                     &exposure(-1.0),
                     &IDENTITY,
                     &[0.0; 24],
+                    &[],
+                    0.0,
+                    false,
                     &[1, 1, 0, 0, 1, 1, 0],
                     true
                 )

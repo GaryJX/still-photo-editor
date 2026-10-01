@@ -16,6 +16,10 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByLabel('Choose a photo', { exact: true }).setInputFiles({ name: 'accessible.png', mimeType: 'image/png', buffer: makePng(400, 300) });
     await expect(page.locator('[data-preview]')).toHaveAttribute('width', '400');
     await check('loaded');
+    await page.getByLabel('Choose a LUT file', { exact: true }).setInputFiles({ name: 'identity.cube', mimeType: 'text/plain', buffer: Buffer.from('TITLE "Identity"\nLUT_1D_SIZE 2\n0 0 0\n1 1 1\n') });
+    await expect.poll(async () => JSON.parse((await page.locator('[data-preview]').getAttribute('data-recipe'))!).look?.kind).toBe('lut');
+    await page.locator('.look-section summary').click();
+    await check('look');
     await page.getByRole('button', { name: 'Crop', exact: true }).click();
     await check('crop');
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();

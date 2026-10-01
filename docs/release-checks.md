@@ -25,6 +25,6 @@ The first Linux browser-matrix run passed 98 of 99 checks and exposed a numeric-
 - WASM capacity measurements exclude JavaScript, browser-image, and canvas allocations. Whole-tab peak memory and low-memory-device limits are not claimed.
 - Browser storage can be unavailable, full, or cleared. Presets have a session fallback and an original-file backup action; photo sessions remain in memory.
 - Native leave warnings depend on browser rules and user interaction. They do not provide crash/session recovery. A successful image download start clears the warning; a later cancelled operating-system save dialog cannot be detected.
-- Unsupported XMP fields are reported. External profile or LUT references are never fetched automatically. Adobe `Look` support is handled as an explicit compatibility milestone, not assumed from the setting name.
+- Unsupported XMP fields are reported. External profile or LUT references are never fetched automatically. Supported curve looks and standard cube LUTs are tested; Adobe camera/profile-table dependencies remain explicit compatibility limits. See [look-support.md](look-support.md).
 
 See [processing.md](processing.md), [xmp-support.md](xmp-support.md), and [performance.md](performance.md) for the rendering contract, compatibility matrix, and measurement context.

@@ -1,5 +1,6 @@
 import type { Recipe } from '../editor/recipe';
 import type { ExportOptions } from '../editor/encoding';
+import type { LutAsset } from '../editor/cube';
 
 export interface PhotoInfo {
   width: number;
@@ -42,6 +43,8 @@ export interface ExportedPhoto {
 
 export interface EngineApi {
   ready(): Promise<void>;
+  importLut(file: File): Promise<LutAsset>;
+  installLut(asset: LutAsset): Promise<void>;
   open(file: File): Promise<LoadedPhoto | 'decode-on-main'>;
   openDecoded(photo: DecodedPhoto): Promise<LoadedPhoto>;
   render(recipe: Recipe, knownOriginalGeometry?: string): Frame;

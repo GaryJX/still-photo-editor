@@ -1,8 +1,9 @@
 import { defaultCurves, type Curves } from './curves';
 import { defaultHsl, type HslSettings } from './hsl';
 import { defaultGeometry, type Geometry } from './geometry';
+import { renderingLook, type Look } from './look';
 
-export const ENGINE_VERSION = '0.5.0';
+export const ENGINE_VERSION = '0.6.0';
 export const adjustmentKeys = ['exposure', 'contrast', 'warmth', 'tint', 'saturation', 'vibrance'] as const;
 export type Adjustment = typeof adjustmentKeys[number];
 
@@ -18,6 +19,7 @@ export interface Recipe {
   curves: Curves;
   hsl: HslSettings;
   geometry: Geometry;
+  look: Look;
 }
 
 export const initialRecipe: Recipe = {
@@ -26,6 +28,7 @@ export const initialRecipe: Recipe = {
   curves: defaultCurves(),
   hsl: defaultHsl(),
   geometry: defaultGeometry(),
+  look: null,
 };
 
 export function adjustmentValue(key: Adjustment, value: number): number {
@@ -34,5 +37,5 @@ export function adjustmentValue(key: Adjustment, value: number): number {
   return Math.round(Math.max(-limit, Math.min(limit, value)) * 100) / 100;
 }
 
-export const recipeKey = (recipe: Recipe) => JSON.stringify(recipe);
+export const recipeKey = (recipe: Recipe) => JSON.stringify({ ...recipe, look: renderingLook(recipe.look) });
 export const recipeValues = (recipe: Recipe) => new Float32Array(adjustmentKeys.map(key => recipe[key]));

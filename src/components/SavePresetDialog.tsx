@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { allPresetGroups, type PresetGroups } from '../presets/export';
 
 export interface SavePresetOptions { name: string; save: boolean; download: boolean; groups: PresetGroups }
-export function SavePresetDialog({ busy, error, onSave, onCancel }: { busy: boolean; error: string; onSave: (options: SavePresetOptions) => void; onCancel: () => void }) {
+export function SavePresetDialog({ busy, error, hasLut, onSave, onCancel }: { busy: boolean; error: string; hasLut: boolean; onSave: (options: SavePresetOptions) => void; onCancel: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [options, setOptions] = useState<SavePresetOptions>({ name: '', save: true, download: true, groups: allPresetGroups });
   useLayoutEffect(() => { dialog.current!.showModal(); return () => dialog.current?.close(); }, []);
@@ -12,8 +12,9 @@ export function SavePresetDialog({ busy, error, onSave, onCancel }: { busy: bool
     <p class="curve-help">Save light and color adjustments for another photo. Crop and rotation stay with this image.</p>
     <label class="preset-checkbox"><input type="checkbox" checked={options.save} disabled={busy} onChange={event => setOptions({ ...options, save: event.currentTarget.checked })} />Save in this browser</label>
     <label class="preset-checkbox"><input type="checkbox" checked={options.download} disabled={busy} onChange={event => setOptions({ ...options, download: event.currentTarget.checked })} />Download XMP file</label>
-    <details class="preset-groups"><summary>Settings to include</summary>{(['light', 'color', 'curves', 'hsl'] as const).map(group => <label class="preset-checkbox" key={group}><input type="checkbox" aria-label={`Include ${group}`} checked={options.groups[group]} disabled={busy} onChange={event => setOptions({ ...options, groups: { ...options.groups, [group]: event.currentTarget.checked } })} />{({ light: 'Light', color: 'Color', curves: 'Tone curves', hsl: 'Color mix' })[group]}</label>)}</details>
+    <details class="preset-groups"><summary>Settings to include</summary>{(['light', 'color', 'curves', 'hsl', 'look'] as const).map(group => <label class="preset-checkbox" key={group}><input type="checkbox" aria-label={`Include ${group}`} checked={options.groups[group]} disabled={busy} onChange={event => setOptions({ ...options, groups: { ...options.groups, [group]: event.currentTarget.checked } })} />{({ light: 'Light', color: 'Color', curves: 'Tone curves', hsl: 'Color mix', look: 'Look / LUT' })[group]}</label>)}</details>
     <p class="curve-help">The XMP uses mapped Camera Raw settings. Other editors can render the same values differently.</p>
+    {hasLut && options.groups.look && <p class="curve-help">The LUT is saved as a Still-specific reference. Keep its .cube file to use the preset elsewhere; other editors ignore this reference.</p>}
     {error && <p class="export-error" role="alert">{error}</p>}
     <div class="dialog-footer"><button class="button button-quiet" disabled={busy} onClick={onCancel}>Cancel</button><button class="button button-primary" disabled={busy || !options.name.trim() || (!options.save && !options.download) || !Object.values(options.groups).some(Boolean)} onClick={() => onSave(options)}>{busy ? 'Saving…' : 'Save preset'}</button></div>
   </dialog>;

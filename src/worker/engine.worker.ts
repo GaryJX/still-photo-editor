@@ -4,6 +4,8 @@ import { imageInfo } from '../editor/image';
 import type { DecodedPhoto, EngineApi, Frame, LoadedPhoto, PhotoInfo } from './types';
 import { ENGINE_VERSION, initialRecipe, recipeKey, recipeValues, type Recipe } from '../editor/recipe';
 import { curveValues } from '../editor/curves';
+import { cleanLook } from '../editor/look';
+import { cubeId, parseCube, MAX_CUBE_BYTES, type Cube } from '../editor/cube';
 import { hslValues } from '../editor/hsl';
 import { geometryKey, geometryLayout } from '../editor/geometry';
 import { drawExport, validateExport } from '../editor/encoding';
@@ -13,12 +15,15 @@ let memory: WebAssembly.Memory;
 let engine: ImageEngine | undefined;
 let info: PhotoInfo | undefined;
 let cachedOriginal: Frame | undefined;
+const luts = new Map<string, Cube>();
+let activeLutId: string | undefined;
 
 async function openDecoded(photo: DecodedPhoto): Promise<LoadedPhoto> {
   memory = (await wasm).memory;
   const next = new ImageEngine(photo.pixels, photo.previewPixels);
   engine?.free();
   engine = next;
+  activeLutId = undefined;
   info = { width: photo.width, height: photo.height, previewWidth: photo.previewWidth, previewHeight: photo.previewHeight };
   const frame = render(initialRecipe);
   cachedOriginal = { ...frame, pixels: frame.pixels.slice() };
@@ -31,7 +36,15 @@ function render(recipe: Recipe, fullResolution = false): Frame {
   const started = performance.now();
   const layout = geometryLayout(fullResolution ? info.width : info.previewWidth, fullResolution ? info.height : info.previewHeight, recipe.geometry);
   const output = geometryLayout(info.width, info.height, recipe.geometry);
-  const pixels = engine.render(recipeValues(recipe), curveValues(recipe.curves), hslValues(recipe.hsl), layout.values, fullResolution);
+  const look = cleanLook(recipe.look);
+  if (look?.kind === 'lut' && look.amount > 0 && activeLutId !== look.assetId) {
+    const lut = luts.get(look.assetId);
+    if (!lut) throw new Error(`Import the .cube file for ${look.name} to use this look.`);
+    engine.set_lut(lut.kind, lut.size, lut.domain, lut.data);
+    activeLutId = look.assetId;
+  }
+  const lookCurves = look?.kind === 'curves' ? curveValues(look.curves) : new Float32Array();
+  const pixels = engine.render(recipeValues(recipe), curveValues(recipe.curves), hslValues(recipe.hsl), lookCurves, look?.amount ?? 0, look?.kind === 'lut', layout.values, fullResolution);
   return {
     pixels,
     width: layout.width,
@@ -47,6 +60,18 @@ function render(recipe: Recipe, fullResolution = false): Frame {
 
 const api: EngineApi = {
   async ready() { await wasm; },
+  async importLut(file) {
+    if (file.size > MAX_CUBE_BYTES) throw new Error('Choose a .cube file smaller than 20 MB.');
+    const source = await file.text(); const cube = parseCube(source, file.name); const id = await cubeId(source);
+    luts.set(id, cube);
+    return { id, source, name: cube.name, kind: cube.kind, size: cube.size, createdAt: Date.now() };
+  },
+  async installLut(asset) {
+    if (luts.has(asset.id)) return;
+    const cube = parseCube(asset.source, asset.name);
+    if (await cubeId(asset.source) !== asset.id) throw new Error('The stored LUT does not match its identifier. Reimport the original .cube file.');
+    luts.set(asset.id, cube);
+  },
   async open(file) {
     if (typeof OffscreenCanvas === 'undefined' || typeof createImageBitmap === 'undefined') return 'decode-on-main';
     let bitmap: ImageBitmap;

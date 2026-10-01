@@ -1,10 +1,11 @@
 import { validCurve, type CurveChannel, type CurvePoint, type Curves } from '../editor/curves';
 import { xmpHslFields, type HslPatch } from '../editor/hsl';
 import type { Adjustment } from '../editor/recipe';
+import { cleanLook, type Look } from '../editor/look';
 
 export const CRS = 'http://ns.adobe.com/camera-raw-settings/1.0/';
 export const RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
-export type PresetPatch = Partial<Record<Adjustment, number>> & { curves?: Partial<Curves>; hsl?: HslPatch };
+export type PresetPatch = Partial<Record<Adjustment, number>> & { curves?: Partial<Curves>; hsl?: HslPatch; look?: Look };
 export const STILL = 'https://garyjx.github.io/wasm-image-editor/xmp/1.0/';
 
 export const scalarFields: Record<string, [Adjustment, string]> = {
@@ -27,12 +28,14 @@ export function validatePresetPatch(patch: PresetPatch) {
     if (!validCurve(patch.curves[channel]!)) throw new Error(`The ${channel} curve cannot be exported.`);
     count++;
   }
+  if (patch.look !== undefined) { cleanLook(patch.look); count++; }
   if (!count) throw new Error('Select at least one adjustment group.');
 }
 
 export function cleanPresetPatch(patch: PresetPatch): PresetPatch {
   validatePresetPatch(patch);
   const clean: PresetPatch = {};
+  if (patch.look !== undefined) clean.look = cleanLook(patch.look);
   for (const [key] of Object.values(scalarFields)) if (patch[key] !== undefined) clean[key] = patch[key];
   for (const [band, key] of Object.values(xmpHslFields)) if (patch.hsl?.[band]?.[key] !== undefined) {
     clean.hsl ??= {}; clean.hsl[band] ??= {}; clean.hsl[band]![key] = patch.hsl[band]![key];
@@ -45,6 +48,16 @@ export function cleanPresetPatch(patch: PresetPatch): PresetPatch {
 
 export function restorePrecision(native: PresetPatch, exact: PresetPatch) {
   const clean = cleanPresetPatch(exact);
+  if (native.look !== undefined && clean.look !== undefined) {
+    if (native.look?.kind !== clean.look?.kind) throw new Error('Precision metadata cannot change the look type.');
+    if (native.look?.kind === 'lut' && clean.look?.kind === 'lut') {
+      if (native.look.assetId !== clean.look.assetId) throw new Error('Precision metadata cannot change the LUT reference.');
+      native.look = { ...native.look, amount: clean.look.amount };
+    } else if (native.look?.kind === 'curves' && clean.look?.kind === 'curves') {
+      if (native.look.supportsAmount !== clean.look.supportsAmount) throw new Error('Precision metadata cannot change profile capabilities.');
+      native.look = { ...native.look, amount: clean.look.amount, curves: clean.look.curves };
+    }
+  }
   for (const [key] of Object.values(scalarFields)) if (native[key] !== undefined && clean[key] !== undefined) native[key] = clean[key];
   for (const [band, key] of Object.values(xmpHslFields)) if (native.hsl?.[band]?.[key] !== undefined && clean.hsl?.[band]?.[key] !== undefined) native.hsl[band]![key] = clean.hsl[band]![key];
   for (const channel of Object.values(curveFields)) if (native.curves?.[channel] && clean.curves?.[channel]) native.curves[channel] = clean.curves[channel];

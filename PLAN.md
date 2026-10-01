@@ -4,9 +4,9 @@
 
 Build a useful photo editor that runs entirely in the browser, uses Rust/WebAssembly for processing, and makes editing approachable for beginners. A user should be able to open a photo, apply an XMP preset or adjust a few controls, compare the result, and download the edited image.
 
-**Status:** Milestones 0–4 are implemented, including HSL, crop/rotation, export formats, recovery, and responsive controls. Dark mode and unsaved-edit protection are published. Release validation (Milestone 5) is in progress, followed by XMP export (6) and `Look`/profile compatibility (7). The user explicitly requested completing the entire roadmap and publishing each tested milestone.
+**Status:** Milestones 0–7 are implemented for the documented supported formats. Version 1.0.0 is entering its final browser release matrix. Unsupported Adobe camera/profile-table formats and real-device testing limits remain explicit.
 
-**Next action:** Implement the feasible `Look`/profile subset and actionable missing-dependency reporting. Milestones 0–5 passed their release checks; XMP export is implemented and entering CI. Actual mobile-device testing and unavailable Adobe profile data remain explicitly documented limitations. Then implement XMP export and the feasible `Look`/profile subset. Do not stop after a partial milestone unless a concrete external dependency blocks further progress.
+**Next action:** Run the final full release matrix and live-site checks for the completed Look/LUT milestone. All roadmap features are implemented for their documented supported formats; unavailable Adobe profile formats and real-device testing remain explicit compatibility limits. Then implement XMP export and the feasible `Look`/profile subset. Do not stop after a partial milestone unless a concrete external dependency blocks further progress.
 
 ## Product boundaries
 
@@ -197,13 +197,13 @@ Work on this only after completing the existing roadmap above. Requested by the 
 
 Requested by the user after encountering unsupported `Look` settings in real presets. Investigate representative `crs:Look` blocks first; do not promise support for every Adobe profile or treat a look as an ordinary slider.
 
-- [ ] Inspect user-provided examples and distinguish profile references, parameterized looks, and self-contained transform data. The user has been asked for an example block.
-- [ ] Improve the compatibility report to identify the look/profile name and any missing dependency rather than only saying `Look` is unsupported.
-- [ ] Document which profile/lookup-table formats can be decoded and rendered locally with known, reusable specifications and available data.
-- [ ] Implement a supported subset where feasible, with explicit version/format handling, amount/blending semantics, and a documented position in the color pipeline.
-- [ ] Offer a local dependency import workflow if a supported look needs a separate user-supplied profile or LUT. Never fetch paths/URLs embedded in a preset automatically.
-- [ ] Preserve unsupported look data in the original XMP and explain when an unavailable Adobe profile prevents reproduction. Do not silently omit it while claiming full preset support.
-- [ ] Verify reference fixtures, neutral/identity behavior, preview/export agreement, and interaction with the existing adjustments.
+- [x] Inspect representative examples and distinguish profile references, parameterized looks, and self-contained transform data. A public Adobe Color example was inspected; the requested user-specific block was not provided.
+- [x] Improve the compatibility report to identify the look/profile name and any missing dependency rather than only saying `Look` is unsupported.
+- [x] Document which profile/lookup-table formats can be decoded and rendered locally with known, reusable specifications and available data.
+- [x] Implement a supported subset where feasible, with explicit version/format handling, amount/blending semantics, and a documented position in the color pipeline.
+- [x] Offer a local dependency import workflow if a supported look needs a separate user-supplied profile or LUT. Never fetch paths/URLs embedded in a preset automatically.
+- [x] Preserve unsupported look data in the original XMP and explain when an unavailable Adobe profile prevents reproduction. Do not silently omit it while claiming full preset support.
+- [x] Verify reference fixtures, neutral/identity behavior, preview/export agreement, and interaction with the existing adjustments.
 
 **Exit condition:** feasible look types are supported and tested; unresolved or unavailable profile dependencies receive actionable compatibility messages. Broader Adobe rendering parity is not assumed.
 
@@ -236,6 +236,10 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-10-01 — Final local release checks:** version 1.0.0 built successfully; 19 Rust tests, 13 frontend tests, and 44 WebKit workflows passed, with one conditional WebP encoder skip. Look tests include amount behavior, XMP precision/reference round-trips, legacy storage migration, missing/matching LUT files, recovery, and accessibility. A final 17-grid LUT preview measured 56 ms. The final cross-browser matrix and live-site verification are next.
+
+- **2026-09-30 — Look/LUT milestone implemented:** added engine 0.6.0 curve-look blending and validated 1D/3D cube interpolation. Added named Adobe dependency reporting, amount capabilities, local LUT import/persistence/backup, source-hash references in exported XMP, missing-file recovery, and storage migration. Tests cover image/XMP round-trips, alpha, fixed/zero amount, legacy preset preservation, worker recovery, and active-LUT accessibility. The local 17-grid 1600×1200 LUT preview measured 57 ms. Nineteen native tests and 13 frontend tests pass; final browser release validation is next. The XMP release synchronization correction (`d25c83b`) passed CI. Unsupported Adobe camera/profile-table formats are documented rather than represented as fully supported.
 
 - **2026-09-30 — XMP preset export:** added Save as preset with group selection, browser saving, and XMP download. Shared mapping/validation excludes photo-specific data. Standard fields use the Camera Raw integer/real schema; a validated, whitelisted precision extension keeps exact Still values without invalid native curve coordinates. Unit and browser tests cover invalid values, escaped names, partial exports, pixel round-trips, geometry exclusion, and invalid precision fallback. External Adobe application validation was unavailable and is documented. Core release validation completed before this milestone, as requested.
 

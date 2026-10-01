@@ -118,6 +118,9 @@ svg { flex-shrink: 0; }
 .advanced-controls[open] summary { margin-bottom: 16px; }
 .curve-section > summary { cursor: pointer; font-size: 12px; font-weight: 600; }
 .hsl-section > summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+.look-section > summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+.look-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0; }
+.look-toolbar select { min-width: 0; width: 100%; padding: 7px; border: 1px solid #dfe4d7; border-radius: 5px; background: #f6f7f3; color: inherit; font: inherit; font-size: 11px; }
 .color-swatches { display: flex; justify-content: space-between; gap: 2px; margin: 18px 0; }
 .color-swatches button { border: 2px solid transparent; padding: 2px; background: transparent; border-radius: 50%; display: grid; place-items: center; }
 .color-swatches button[aria-pressed="true"] { border-color: var(--accent); }

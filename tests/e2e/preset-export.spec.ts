@@ -50,6 +50,7 @@ test('partial preset export omits unselected groups and can download without sav
   await page.getByLabel('Include light', { exact: true }).uncheck();
   await page.getByLabel('Include curves', { exact: true }).uncheck();
   await page.getByLabel('Include hsl', { exact: true }).uncheck();
+  await page.getByLabel('Include look', { exact: true }).uncheck();
   const waiting = page.waitForEvent('download'); await page.getByRole('button', { name: 'Save preset', exact: true }).click();
   const xml = await readFile((await (await waiting).path())!, 'utf8');
   expect(xml).toContain('IncrementalTemperature="25"');

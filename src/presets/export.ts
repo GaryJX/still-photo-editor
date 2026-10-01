@@ -4,8 +4,8 @@ import type { Recipe } from '../editor/recipe';
 import { CRS, RDF, STILL, curveFields, scalarFields, cleanPresetPatch, type PresetPatch } from './schema';
 export { validatePresetPatch } from './schema';
 
-export interface PresetGroups { light: boolean; color: boolean; curves: boolean; hsl: boolean }
-export const allPresetGroups: PresetGroups = { light: true, color: true, curves: true, hsl: true };
+export interface PresetGroups { light: boolean; color: boolean; curves: boolean; hsl: boolean; look: boolean }
+export const allPresetGroups: PresetGroups = { light: true, color: true, curves: true, hsl: true, look: true };
 
 export function presetPatch(recipe: Recipe, groups: PresetGroups): PresetPatch {
   return {
@@ -13,6 +13,7 @@ export function presetPatch(recipe: Recipe, groups: PresetGroups): PresetPatch {
     ...(groups.color ? { warmth: recipe.warmth, tint: recipe.tint, saturation: recipe.saturation, vibrance: recipe.vibrance } : {}),
     ...(groups.curves ? { curves: recipe.curves } : {}),
     ...(groups.hsl ? { hsl: recipe.hsl } : {}),
+    ...(groups.look ? { look: recipe.look } : {}),
   };
 }
 
@@ -55,6 +56,29 @@ export function serializeXmpPreset(patch: PresetPatch, name: string, uuid = cryp
     for (const [x, y] of rounded) {
       const item = sequence.appendChild(xml.createElementNS(RDF, 'rdf:li'));
       item.textContent = `${x}, ${y}`;
+    }
+    count++;
+  }
+  if (patch.look !== undefined) {
+    if (patch.look?.kind === 'curves') {
+      const property = description.appendChild(xml.createElementNS(CRS, 'crs:Look'));
+      const look = property.appendChild(xml.createElementNS(RDF, 'rdf:Description'));
+      for (const [key, value] of Object.entries({ Name: patch.look.name, Amount: String(patch.look.amount), SupportsAmount: String(patch.look.supportsAmount), SupportsOutputReferred: 'true', UUID: patch.look.uuid ?? crypto.randomUUID().replaceAll('-', '').toUpperCase() })) look.setAttributeNS(CRS, `crs:${key}`, value);
+      const parameters = look.appendChild(xml.createElementNS(CRS, 'crs:Parameters')).appendChild(xml.createElementNS(RDF, 'rdf:Description'));
+      parameters.setAttributeNS(CRS, 'crs:ProcessVersion', '11.0');
+      for (const [field, channel] of Object.entries(curveFields)) {
+        const sequence = parameters.appendChild(xml.createElementNS(CRS, `crs:${field}`)).appendChild(xml.createElementNS(RDF, 'rdf:Seq'));
+        const rounded = new Map<number, number>();
+        patch.look.curves[channel].forEach(([x, y], index, points) => {
+          const input = Math.round(x * 255);
+          if ((input === 0 && index !== 0) || (input === 255 && index !== points.length - 1)) return;
+          rounded.set(input, Math.round(y * 255));
+        });
+        for (const [x, y] of rounded) sequence.appendChild(xml.createElementNS(RDF, 'rdf:li')).textContent = `${x}, ${y}`;
+      }
+    } else {
+      const property = description.appendChild(xml.createElementNS(STILL, 'still:Look'));
+      property.setAttribute('version', '1'); property.textContent = JSON.stringify(patch.look);
     }
     count++;
   }
