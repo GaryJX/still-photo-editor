@@ -4,9 +4,9 @@
 
 Build a useful photo editor that runs entirely in the browser, uses Rust/WebAssembly for processing, and makes editing approachable for beginners. A user should be able to open a photo, apply an XMP preset or adjust a few controls, compare the result, and download the edited image.
 
-**Status:** Milestone 0 complete; implementation not started.
+**Status:** Milestones 0 and 1 complete. The first working slice is available locally; Milestones 2–5 remain open.
 
-**Next action:** Complete Milestone 1: a working import → worker → Rust/WASM exposure adjustment → preview → export flow. Bring XMP presets into the next usable increment after the core engine.
+**Next action:** Start Milestone 2 with a documented multi-control recipe and Rust contrast, warmth/tint, and saturation operations, then curves/HSL and history. Follow with XMP mapping and saved presets in Milestone 3. Keep new controls hidden until their renderers work.
 
 ## Product boundaries
 
@@ -119,14 +119,14 @@ If storage is unavailable or full, keep the preset usable for the current sessio
 - [x] Save this roadmap, a README, and working instructions.
 - [x] Check available development tools: Node 24.15.0, npm 11.12.1, Rust/Cargo 1.92.0 are present; `wasm-pack` is not installed.
 
-### 1. Prove the full processing path — next
+### 1. Prove the full processing path — complete
 
-- [ ] Scaffold Vite/Preact/TypeScript and the Rust crate; install `wasm-pack` and the required WASM target through ordinary development tooling.
-- [ ] Pin dependencies and provide reproducible development/build commands.
-- [ ] Implement photo import, worker initialization, one Rust exposure operation, canvas preview, reset, and PNG export.
-- [ ] Keep the original buffer unchanged and use the latest-request scheduling policy.
-- [ ] Verify a known pixel transformation in Rust and a real browser import/edit/export flow.
-- [ ] Measure a preview and a full-resolution export on representative 12 MP and 24 MP inputs; record actual results and device/browser details.
+- [x] Scaffold Vite/Preact/TypeScript and the Rust crate; install `wasm-pack` and the required WASM target through ordinary development tooling.
+- [x] Pin dependencies and provide reproducible development/build commands.
+- [x] Implement photo import, worker initialization, one Rust exposure operation, canvas preview, reset, and PNG export.
+- [x] Keep the original buffer unchanged and use the latest-request scheduling policy.
+- [x] Verify a known pixel transformation in Rust and a real browser import/edit/export flow.
+- [x] Measure a preview and a full-resolution export on generated 12 MP and 24 MP inputs; record actual results and device/browser details. These synthetic fixtures are a baseline, not a representative real-photo corpus; broader measurements remain in Milestone 5.
 
 **Exit condition:** a photo can be visibly edited and exported through real WASM processing without blocking ordinary UI interaction. No placeholder processing paths.
 
@@ -197,10 +197,19 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Own versioned recipe plus explicit partial XMP mapping | Adobe parameter names do not reproduce its proprietary rendering pipeline |
 | 2026-09-30 | Browser codecs, SDR sRGB, single-threaded WASM first | Establish a working, measurable baseline before more complex rendering paths |
 | 2026-09-30 | XMP import before final interface polish | Preset reuse is a central user requirement and should be validated early |
+| 2026-09-30 | Use a float-computed 256-entry lookup table for the initial exposure operation | Equivalent to per-pixel float math for 8-bit input, without full-image float buffers; revisit when composing controls |
+| 2026-09-30 | Use Rust release optimization without the optional `wasm-opt` step | Binaryen download failed; the 25.9 kB engine builds and meets the initial measured preview target with the existing compiler |
+| 2026-09-30 | Record the first browser baseline in WebKit | WebKit runs normally here; Chromium and Firefox launch failures prevent claiming their coverage |
+| 2026-09-30 | Publish the current milestone through GitHub Pages and license the project under MIT | User requested a shareable test site; deployment runs after successful build/unit checks on pushes to `main` |
 
 ## Implementation log
 
 - **2026-09-30 — Planning:** created the local repository, checked the available toolchain, and recorded product scope, architecture, milestone gates, and XMP behavior. No application code or runtime tests yet.
+- **2026-09-30 — Milestone 1:** built the Preact interface, Rust/WASM worker, immutable image storage, latest-request scheduler, exposure, comparison/reset, PNG export, local-only drag/drop, and JPEG orientation handling. Added a responsive neutral interface with a working exposure control and no placeholder advanced controls.
+- **Verification:** production build/typecheck passed; 4 Rust tests and 2 scheduler tests passed. Six WebKit workflows passed across the main run and the added JPEG-orientation/drop test. Browser tests exposed a canvas-update timing issue; switching the canvas draw to a layout effect fixed it. Inspected empty and loaded layouts at 1440 px and 390 px widths.
+- **Measured baseline:** Apple M4 Max, 64 GiB RAM, macOS 15.8.1, Playwright WebKit 26.6. Generated 12/24 MP images had 2–4 ms preview engine times and roughly 199/399 ms full-size PNG exports. See `docs/performance.md` for raw measurements, memory accounting, and limits.
+- **Environment limitation:** Chromium launch was denied a required macOS Mach-port operation; Firefox also failed to launch. No launch restrictions were changed. Their browser checks remain pending, and real-device testing has not been performed.
+- **Publishing preparation:** added MIT licensing, pinned Node/Rust toolchains, an Actions Pages workflow, project-path support, and deployment instructions. Target repository: `GaryJX/wasm-image-editor`; target URL: `https://garyjx.github.io/wasm-image-editor/`. Deployment outcome will be recorded after verification.
 
 ## Reference implementation
 

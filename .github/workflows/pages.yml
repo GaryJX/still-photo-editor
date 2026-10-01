@@ -1,0 +1,68 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Set up Rust and the WASM target
+        run: rustup show active-toolchain
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test the engine and render scheduler
+        run: |
+          npm run test:rust
+          npm test
+
+      - name: Read Pages configuration
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Build for the Pages URL
+        run: npm run build
+        env:
+          APP_BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy the site
+        id: deployment
+        uses: actions/deploy-pages@v4

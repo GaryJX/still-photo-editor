@@ -1,0 +1,38 @@
+{
+  "name": "wasm-image-editor",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GaryJX/wasm-image-editor.git"
+  },
+  "homepage": "https://garyjx.github.io/wasm-image-editor/",
+  "type": "module",
+  "scripts": {
+    "wasm:build": "wasm-pack build crates/image-engine --target web --release",
+    "dev": "npm run wasm:build && vite --host 127.0.0.1",
+    "build": "npm run wasm:build && tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:rust": "cargo test --manifest-path crates/image-engine/Cargo.toml",
+    "test:e2e": "playwright test",
+    "check": "npm run test:rust && npm run test && npm run build && npm run test:e2e"
+  },
+  "dependencies": {
+    "comlink": "4.4.2",
+    "preact": "11.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.19.0",
+    "typescript": "5.9.3",
+    "vite": "8.3.1",
+    "vitest": "5.0.3",
+    "wasm-pack": "0.15.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
