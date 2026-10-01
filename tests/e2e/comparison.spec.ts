@@ -59,11 +59,10 @@ test.describe('touch comparison', () => {
   test('responds to touch without changing the edits', async ({ page }) => {
     await openEdited(page);
     const divider = page.getByRole('slider', { name: 'Before and after comparison' });
+    await divider.scrollIntoViewIfNeeded();
     const bounds = (await divider.boundingBox())!;
     await page.touchscreen.tap(bounds.x + bounds.width * 0.2, bounds.y + bounds.height * 0.6);
-    const position = Number(await divider.getAttribute('aria-valuenow'));
-    expect(position).toBeGreaterThan(18);
-    expect(position).toBeLessThan(22);
+    await expect.poll(async () => Number(await divider.getAttribute('aria-valuenow'))).toBeCloseTo(20, 0);
     await expect(page.locator('[data-preview]')).toHaveAttribute('data-exposure', '1');
   });
 });

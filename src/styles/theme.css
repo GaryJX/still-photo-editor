@@ -60,4 +60,8 @@
 [data-theme="dark"] .curve-plot rect { fill: #20291e; stroke: #46503f; }
 [data-theme="dark"] .curve-plot path { stroke: #46503f; }
 [data-theme="dark"] .curve-plot circle { fill: #1d231e; }
+[data-theme="dark"] .preset-note, [data-theme="dark"] .preset-report, [data-theme="dark"] .preset-menu summary { color: #aab7a2; }
+[data-theme="dark"] .preset-list li { border-color: #414d3a; }
+[data-theme="dark"] .preset-name { color: #d2e3c4; }
+[data-theme="dark"] .preset-menu button, [data-theme="dark"] .preset-rename input { color: #d2e3c4; background: #293226; border-color: #414d3a; }
 @media (max-width: 370px) { .topbar { gap: 8px; } .header-actions { gap: 5px; } .header-actions .button { padding: 8px; font-size: 10px; } .header-actions .theme-toggle { width: 32px; } }

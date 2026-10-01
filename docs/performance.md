@@ -1,5 +1,7 @@
 # Initial performance baseline
 
+Updated engine 0.3.0 measurements (same machine, generated fixtures, and WebKit setup): 12 MP import 414 ms, preview p95 21 ms, PNG export 320 ms; 24 MP import 683 ms, preview p95 18 ms, PNG export 577 ms. WASM memory capacities remained 112.66/206.90 MB. These include the float color/curve pipeline. The original single-exposure baseline below is retained for comparison. Whole-tab peak memory and real-device performance remain unmeasured.
+
 Recorded 2026-09-30 on an Apple M4 Max with 64 GiB RAM, macOS 15.8.1, Node 24.15.0, and Playwright 1.63.0 / WebKit 26.6. This is headless WebKit automation, not a real Safari-device benchmark.
 
 The test uses generated PNG color gradients with varying RGB channels. These compress differently from real photographs. Ten exposure changes run after each import, followed by a full-resolution PNG export. Each source is loaded in a fresh page. PNG dimensions are verified, and smaller fixtures separately verify edited output pixels and alpha.

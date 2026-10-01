@@ -62,4 +62,4 @@ The canvas is updated in a layout effect so the visible pixels agree with the co
 
 History stores up to 100 immutable recipe snapshots, groups a slider gesture into one step, and clears redo when a new edit is committed. It never stores full-image history buffers. Comparison position is independent of the recipe and history.
 
-This engine does not yet implement XMP import, HSL, crop, saved sessions, wide-gamut/HDR output, or RAW development. No hidden alternative renderer or server-side image processing is used.
+XMP import maps a documented subset of fields to this recipe; see [xmp-support.md](xmp-support.md). This engine does not yet implement HSL, crop, saved image sessions, wide-gamut/HDR output, or RAW development. No hidden alternative renderer or server-side image processing is used.

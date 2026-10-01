@@ -97,6 +97,24 @@ svg { flex-shrink: 0; }
 .curve-numbers { display: flex; gap: 10px; align-items: flex-end; margin-top: 12px; }
 .curve-numbers label { min-width: 0; flex: 1; color: #66705f; font-size: 10px; }
 .curve-numbers input { display: block; margin-top: 5px; width: 100%; border: 1px solid #dfe4d7; background: #f6f7f3; padding: 5px; color: #526247; border-radius: 5px; font-size: 11px; }
+.preset-section { border-bottom: 1px solid var(--line); padding-bottom: 18px; margin-bottom: 20px; }
+.preset-section .section-heading { margin-bottom: 12px; }
+.preset-note, .preset-report { font-size: 11px; line-height: 1.7; color: #66705f; }
+.preset-note { margin: 8px 0 0; }
+.preset-report { margin-top: 12px; overflow-wrap: anywhere; }
+.preset-report summary { cursor: pointer; }
+.preset-report p { margin: 8px 0 0; }
+.preset-list { list-style: none; margin: 0; padding: 0; max-height: 210px; overflow-y: auto; }
+.preset-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; border: 1px solid #e1e6da; border-radius: 6px; padding: 5px 8px; margin-top: 6px; }
+.preset-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; border: 0; background: transparent; padding: 6px 0; color: #526247; font-size: 11px; }
+.preset-name small { display: block; font-size: 9px; opacity: .8; }
+.preset-menu summary { cursor: pointer; list-style: none; color: #66745d; font-size: 11px; padding: 6px; }
+.preset-menu summary::-webkit-details-marker { display: none; }
+.preset-menu[open] { grid-column: 1 / -1; }
+.preset-menu > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.preset-menu button { border: 0; border-radius: 4px; color: #526247; background: #eef2e8; padding: 6px; font-size: 10px; }
+.preset-rename { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.preset-rename input { min-width: 0; width: 100%; border: 1px solid #dfe4d7; background: #f6f7f3; padding: 6px; font: inherit; font-size: 11px; color: inherit; border-radius: 4px; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 30px; }
 .panel-heading .eyebrow { font-size: 8px; }
 h2 { margin: 8px 0 0; font-size: 21px; letter-spacing: -.6px; font-weight: 550; }

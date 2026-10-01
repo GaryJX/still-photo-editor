@@ -7,7 +7,7 @@ export const defaultCurves = (): Curves => ({ master: linearCurve(), red: linear
 
 export function validCurve(points: CurvePoint[]) {
   return points.length >= 2 && points.length <= 32 && points[0][0] === 0 && points.at(-1)![0] === 1
-    && points.every(([x, y], i) => Number.isFinite(x) && Number.isFinite(y) && x >= 0 && x <= 1 && y >= 0 && y <= 1 && (i === 0 || x > points[i - 1][0]));
+    && points.every(([x, y], i) => Number.isFinite(x) && Number.isFinite(y) && x >= 0 && x <= 1 && y >= 0 && y <= 1 && (i === 0 || Math.fround(x) > Math.fround(points[i - 1][0])));
 }
 
 export function curveValues(curves: Curves) {

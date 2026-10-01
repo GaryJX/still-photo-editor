@@ -8,6 +8,9 @@ import { adjustmentValue, initialRecipe, recipeKey, type Adjustment, type Recipe
 import { EditHistory } from '../editor/history';
 import { AdjustmentSlider } from '../components/AdjustmentSlider';
 import { CurveEditor } from '../components/CurveEditor';
+import { PresetLibrary } from '../components/PresetLibrary';
+import { applyPresetPatch, createPreset, MAX_XMP_BYTES, type SavedPreset } from '../presets/xmp';
+import { loadPresets, savePreset, deletePreset } from '../presets/storage';
 import { LatestRenderer } from '../editor/scheduler';
 import type { EngineApi, Frame, PhotoInfo, RenderMetrics } from '../worker/types';
 
@@ -23,7 +26,11 @@ export function App() {
   const [, updateHistory] = useState(0);
   const [originalFrame, setOriginalFrame] = useState<Frame>();
   const [comparison, setComparison] = useState(50);
-  const [busy, setBusy] = useState<'opening' | 'exporting' | null>(null);
+  const [busy, setBusy] = useState<'opening' | 'exporting' | 'preset' | null>(null);
+  const [presets, setPresets] = useState<SavedPreset[]>([]);
+  const [presetReport, setPresetReport] = useState<SavedPreset>();
+  const [storageNotice, setStorageNotice] = useState('');
+  const presetInput = useRef<HTMLInputElement>(null);
   const [rendering, setRendering] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -58,6 +65,63 @@ export function App() {
       for (const url of downloadUrls.current) URL.revokeObjectURL(url);
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    void loadPresets().then(saved => {
+      if (active) setPresets(current => Array.from(new Map([...saved, ...current].map(preset => [preset.id, preset])).values()));
+    }).catch(() => { if (active) setStorageNotice('Browser storage is unavailable. Presets will be available for this session only.'); });
+    return () => { active = false; };
+  }, []);
+
+  function usePreset(preset: SavedPreset) {
+    if (busyRef.current) return;
+    setError('');
+    if (photo && preset.report.applied.length) applyRecipe(applyPresetPatch(history.current.current, preset.patch));
+    setPresetReport(preset);
+    const incomplete = preset.report.unsupported.length + preset.report.invalid.length + preset.report.warnings.length > 0;
+    setNotice(!photo ? 'Preset ready. Open a photo, then select the preset to apply it.' : !preset.report.applied.length ? 'This preset has no supported settings to apply. See its compatibility details.' : incomplete ? `Applied ${preset.name} with some unavailable settings. See its compatibility details.` : `Applied ${preset.name}.`);
+  }
+
+  async function importPreset(file: File) {
+    if (busyRef.current || !ready) return;
+    if (file.size > MAX_XMP_BYTES) { setError('Choose an XMP preset smaller than 2 MB.'); return; }
+    busyRef.current = true; setBusy('preset'); setError('');
+    try {
+      let preset = await createPreset(await file.text(), file.name);
+      const existing = presets.find(item => item.id === preset.id);
+      if (existing) preset = { ...preset, name: existing.name, createdAt: existing.createdAt };
+      try { await savePreset(preset); }
+      catch { preset = { ...preset, sessionOnly: true }; setStorageNotice('This preset is available for this session only. Browser storage could not save it.'); }
+      setPresets(current => [preset, ...current.filter(item => item.id !== preset.id)]);
+      busyRef.current = false;
+      usePreset(preset);
+    } catch (failure) { setError(errorMessage(failure)); }
+    finally { busyRef.current = false; setBusy(null); }
+  }
+
+  async function renamePreset(preset: SavedPreset, name: string) {
+    let renamed = { ...preset, name };
+    try { await savePreset(renamed); renamed = { ...renamed, sessionOnly: false }; }
+    catch { renamed = { ...renamed, sessionOnly: true }; setStorageNotice('The new name is available for this session only.'); }
+    setPresets(current => current.map(item => item.id === renamed.id ? renamed : item));
+  }
+
+  async function removePreset(preset: SavedPreset) {
+    try { await deletePreset(preset.id); }
+    catch { setStorageNotice('Removed for this session. Browser storage could not be updated.'); }
+    setPresets(current => current.filter(item => item.id !== preset.id));
+    if (presetReport?.id === preset.id) setPresetReport(undefined);
+  }
+
+  function downloadOriginalPreset(preset: SavedPreset) {
+    const url = URL.createObjectURL(new Blob([preset.xml], { type: 'application/rdf+xml' }));
+    downloadUrls.current.add(url);
+    const link = document.createElement('a'); link.href = url;
+    link.download = `${preset.name.replace(/[<>:"/\\|?*]/g, '_')}.xmp`;
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => { URL.revokeObjectURL(url); downloadUrls.current.delete(url); }, 60_000);
+  }
 
   async function openPhoto(file: File) {
     if (busyRef.current || !api.current || !ready) return;
@@ -170,7 +234,7 @@ export function App() {
   }
 
   const disabled = !photo || !!busy || !ready;
-  const status = busy === 'opening' ? 'Opening your photo…' : busy === 'exporting' ? 'Preparing your full-size PNG…' : rendering ? 'Updating preview…' : notice;
+  const status = busy === 'opening' ? 'Opening your photo…' : busy === 'exporting' ? 'Preparing your full-size PNG…' : busy === 'preset' ? 'Reading your preset…' : rendering ? 'Updating preview…' : notice;
 
   return (
     <div class="app-shell"
@@ -180,8 +244,8 @@ export function App() {
       onDrop={(event) => {
         event.preventDefault(); dragDepth.current = 0; setDragging(false);
         const files = event.dataTransfer?.files;
-        if (files?.length === 1) void openPhoto(files[0]);
-        else if (files && files.length > 1) setError('Open one photo at a time.');
+        if (files?.length === 1) { if (/\.xmp$/i.test(files[0].name)) void importPreset(files[0]); else void openPhoto(files[0]); }
+        else if (files && files.length > 1) setError('Open one photo or preset at a time.');
       }}
     >
       <header class="topbar">
@@ -199,6 +263,8 @@ export function App() {
         if (file) void openPhoto(file);
         event.currentTarget.value = '';
       }} />
+
+      <input ref={presetInput} class="file-input" type="file" accept=".xmp,application/rdf+xml" aria-label="Choose an XMP preset" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void importPreset(file); event.currentTarget.value = ''; }} />
 
       {error && <div class="error-banner" role="alert"><span>{error}</span><button class="icon-button" aria-label="Dismiss error" onClick={() => setError('')}><Icon name="close" size={18} /></button></div>}
 
@@ -229,6 +295,8 @@ export function App() {
 
         <aside class="controls" aria-label="Photo adjustments">
           <div class="panel-heading"><div><span class="eyebrow">Make it yours</span><h2>Adjustments</h2></div><span class="panel-icon"><Icon name="sun" size={22} /></span></div>
+          <PresetLibrary presets={presets} disabled={!!busy || !ready} storageNotice={storageNotice} report={presetReport}
+            onImport={() => presetInput.current?.click()} onApply={usePreset} onRename={(preset, name) => void renamePreset(preset, name)} onDelete={preset => void removePreset(preset)} onDownload={downloadOriginalPreset} />
           <div class="history-toolbar">
             <button class="button button-small button-quiet" disabled={disabled || !history.current.canUndo} onClick={() => navigateHistory('undo')} title="Undo (⌘/Ctrl Z)">Undo</button>
             <button class="button button-small button-quiet" disabled={disabled || !history.current.canRedo} onClick={() => navigateHistory('redo')} title="Redo (⌘/Ctrl Shift Z)">Redo</button>
@@ -252,7 +320,7 @@ export function App() {
       </main>
 
       <footer class="app-footer"><span>Made for a moment of focus.</span><span role="status" aria-live="polite" class="operation-status">{status || 'Your photos stay on your device.'}</span></footer>
-      {dragging && <div class="drop-overlay"><div><Icon name="image" size={38} /><h2>Drop your photo here</h2><p>JPEG, PNG, or WebP · one at a time</p></div></div>}
+      {dragging && <div class="drop-overlay"><div><Icon name="image" size={38} /><h2>Drop a photo or preset</h2><p>JPEG, PNG, WebP, or XMP · one at a time</p></div></div>}
     </div>
   );
 }

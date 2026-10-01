@@ -1,12 +1,12 @@
 # WASM Image Editor
 
-A browser-based photo editor with a Rust/WebAssembly processing engine and a minimal interface. Images are processed on the user's device; reusable XMP presets are on the roadmap.
+A browser-based photo editor with a Rust/WebAssembly processing engine, a minimal interface, and compatible XMP presets. Images and presets are processed on the user's device.
 
 [Open the editor](https://garyjx.github.io/wasm-image-editor/) · [Implementation plan](PLAN.md) · [MIT license](LICENSE)
 
 ## Project status
 
-The editor, branded **Still**, now includes a draggable comparison divider, global light/color adjustments, master/RGB tone curves, undo/redo, light/dark themes, and full-resolution PNG export. XMP import is next. The local Git repository uses `main`.
+The editor, branded **Still**, now includes a draggable comparison divider, global light/color adjustments, master/RGB tone curves, undo/redo, light/dark themes, XMP import and a saved preset library, and full-resolution PNG export. The local Git repository uses `main`.
 
 [PLAN.md](PLAN.md) is the implementation roadmap, acceptance checklist, and decision log. Update it as work progresses.
 
@@ -20,10 +20,11 @@ The editor, branded **Still**, now includes a draggable comparison divider, glob
 - Export a full-size PNG while preserving transparency.
 - Use the editor on desktop or a narrow screen, with keyboard-accessible controls.
 - Switch between light and dark mode. The first visit follows your system setting; an explicit choice is remembered in this browser.
+- Import XMP presets, apply supported settings as one undo step, and save them in this browser. Rename, delete, or download the original file from the preset menu. See the [XMP compatibility guide](docs/xmp-support.md).
 
 Images remain on the device. The original stays unchanged. Reloading clears the editing session. Source metadata is not preserved in exported PNGs; the processing pipeline uses SDR sRGB.
 
-XMP presets, individual color bands, and crop are upcoming milestones. The current interface contains only implemented controls.
+Individual color bands and crop are upcoming milestones. The current interface contains only implemented controls.
 
 Exporting your own edits as reusable XMP presets is also planned, after the current editing/import roadmap.
 
@@ -34,7 +35,7 @@ Exporting your own edits as reusable XMP presets is also planned, after the curr
 3. Compare with the original and undo any change.
 4. Export an edited image.
 
-Imported presets will be saved in this browser for later use. Planned XMP support covers a documented subset of Adobe settings and will not promise identical Lightroom rendering.
+Imported presets are saved in this browser for later use. XMP support covers a documented subset of Adobe settings and does not promise identical Lightroom rendering.
 
 ## Stack
 
@@ -42,7 +43,7 @@ Imported presets will be saved in this browser for later use. Planned XMP suppor
 - Rust, `wasm-bindgen`, and `wasm-pack` for image processing.
 - Web Worker and Comlink for processing without blocking the interface.
 - Canvas for initial preview rendering; browser codecs for initial import/export.
-- IndexedDB for saved presets and localStorage for small UI preferences are planned.
+- IndexedDB for saved presets and localStorage for the theme preference.
 - Cargo tests, Vitest, and Playwright for focused validation.
 
 ## Development

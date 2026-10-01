@@ -4,9 +4,9 @@
 
 Build a useful photo editor that runs entirely in the browser, uses Rust/WebAssembly for processing, and makes editing approachable for beginners. A user should be able to open a photo, apply an XMP preset or adjust a few controls, compare the result, and download the edited image.
 
-**Status:** Milestones 0 and 1 complete and published. Milestone 2 now has global light/color controls, master/RGB curves, edit history, and the comparison divider; HSL and geometry remain. Dark mode is published. Milestones 3–5 remain open; XMP export is queued as Milestone 6.
+**Status:** Milestones 0 and 1 complete and published. Milestone 2 has global light/color controls, master/RGB curves, edit history, and comparison; HSL and geometry remain. Dark mode is published. Milestone 3's initial supported XMP subset and saved library are implemented. Milestones 4–5 remain open; XMP export is queued as Milestone 6.
 
-**Next action:** Publish an initial XMP importer and saved-preset library for the implemented controls. Finish HSL and crop/rotation afterwards, extending the XMP mapper as their renderers ship. This incremental sequence gets the user's preset workflow into testing sooner. XMP export remains after the existing roadmap.
+**Next action:** Add the requested native unsaved-edit warning, then finish HSL and crop/rotation, extending the XMP mapper as their renderers ship. Continue export/UX and release checks afterwards. XMP export remains after the existing roadmap.
 
 ## Product boundaries
 
@@ -87,7 +87,7 @@ Applying a preset changes only supported fields present in that file, preserves 
 
 ### Initial mapping targets
 
-All entries below are planned, not currently implemented. Maintain the final names, ranges, process-version handling, and conversion rules in `docs/xmp-support.md` during implementation.
+Current implementation and limits are recorded in `docs/xmp-support.md`. Exposure, contrast, saturation/vibrance, relative temperature/tint, and master/RGB curves are mapped. Absolute RAW white balance, HSL, and the other unsupported groups below remain future work.
 
 | Adobe field family | Planned behavior |
 | --- | --- |
@@ -145,13 +145,13 @@ If storage is unavailable or full, keep the preset usable for the current sessio
 
 ### 3. Make XMP presets useful early
 
-- [ ] Add file-picker and drag/drop XMP import with deterministic photo-versus-preset routing.
-- [ ] Implement the supported-field mapper and visible compatibility report.
-- [ ] Create fixtures for attribute/element forms, namespace variations, RGB curve arrays, malformed input, partial presets, unsupported profiles/masks, and unknown process versions.
-- [ ] Add IndexedDB persistence, duplicate detection, naming, deletion, and original-XMP download.
-- [ ] Support presets imported before a photo and session-only operation on storage failure.
-- [ ] Verify preset application as one undo step and no compounding when reapplied.
-- [ ] Verify saved presets survive reload and unsupported settings are never silently presented as applied.
+- [x] Add file-picker and drag/drop XMP import with deterministic photo-versus-preset routing.
+- [x] Implement the initial supported-field mapper and visible compatibility report; HSL/absolute RAW white balance are reported as unsupported.
+- [x] Create fixtures for attribute/element forms, namespace variations, curve arrays, malformed input, partial presets, nested masks, and unknown process versions. Broaden real-world/profile fixtures in release validation.
+- [x] Add IndexedDB persistence, duplicate detection, naming, deletion, and original-XMP download.
+- [x] Support presets imported before a photo and session-only operation on storage failure.
+- [x] Verify preset application as one undo step and no compounding when reapplied.
+- [x] Verify saved presets survive reload and unsupported settings are never silently presented as applied.
 
 **Exit condition:** a user can drop in an XMP, see the supported look applied, save it in this browser, and reuse it on another image after reloading.
 
@@ -220,6 +220,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-09-30 — XMP import and library:** implemented namespace-aware global setting extraction, explicit range/curve validation, compatibility reports, partial application, and original-file preservation. Added IndexedDB save/load, deduplication, renaming/deletion, original-XMP download, and a session-only fallback. Eighteen functional WebKit checks passed across the main and corrected touch-test runs, plus a fresh 12/24 MP baseline. Engine 0.3.0 previews measured 17–21 ms and full-size PNG exports roughly 320/577 ms on the same M4 Max baseline. The touch test now scrolls the comparison control into view before tapping it after edits further down the mobile page.
 
 - **2026-09-30 — Tone curves:** implemented engine 0.3.0 with validated, piecewise-linear master and RGB curves composed before saturation/vibrance. Added point creation, dragging, numeric input/output, keyboard movement, removal/reset, and undo integration. Ten Rust tests and the production build passed; browser checks verified curve composition and preview/export pixel agreement. A WebKit SVG focus issue was fixed by using the case-correct `tabindex` attribute, and keyboard checks now pass. XMP export was added to the roadmap as a later milestone at the user's request.
 
