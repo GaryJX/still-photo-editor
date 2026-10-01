@@ -6,6 +6,7 @@ crates/*/pkg/
 coverage/
 playwright-report/
 test-results/
+artifacts/
 .DS_Store
 *.log
 .env
