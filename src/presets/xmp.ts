@@ -1,11 +1,12 @@
 import { type Adjustment, type Recipe } from '../editor/recipe';
 import { validCurve, type CurveChannel, type CurvePoint, type Curves } from '../editor/curves';
+import { bandLabel, hslLabels, mergeHsl, xmpHslFields, type HslPatch } from '../editor/hsl';
 
-export const PARSER_VERSION = 1;
+export const PARSER_VERSION = 2;
 export const MAX_XMP_BYTES = 2 * 1024 * 1024;
 const CRS = 'http://ns.adobe.com/camera-raw-settings/1.0/';
 const RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
-export type PresetPatch = Partial<Record<Adjustment, number>> & { curves?: Partial<Curves> };
+export type PresetPatch = Partial<Record<Adjustment, number>> & { curves?: Partial<Curves>; hsl?: HslPatch };
 export interface ImportReport { applied: string[]; approximated: string[]; unsupported: string[]; invalid: string[]; warnings: string[] }
 export interface ParsedPreset { name: string; patch: PresetPatch; report: ImportReport }
 export interface SavedPreset extends ParsedPreset { id: string; xml: string; parserVersion: number; createdAt: number; sessionOnly?: boolean }
@@ -52,6 +53,13 @@ export function parseXmp(xml: string, fallbackName: string): ParsedPreset {
       patch[target] = value;
       report.applied.push(label);
       if (target !== 'exposure') report.approximated.push(label);
+    } else if (xmpHslFields[key]) {
+      const [band, component] = xmpHslFields[key];
+      const value = field.element?.childElementCount ? NaN : numeric(field.text);
+      if (!Number.isFinite(value) || Math.abs(value) > 100) { report.invalid.push(`${key}: expected a number from -100 to 100`); continue; }
+      patch.hsl ??= {}; patch.hsl[band] ??= {}; patch.hsl[band]![component] = value;
+      const label = `${bandLabel(band)} ${hslLabels[component].toLowerCase()}`;
+      report.applied.push(label); report.approximated.push(label);
     } else if (curveFields[key]) {
       const sequence = Array.from(field.element?.children ?? []).find(child => child.namespaceURI === RDF && child.localName === 'Seq');
       const points = sequence ? Array.from(sequence.children).map(item => {
@@ -74,7 +82,7 @@ export function parseXmp(xml: string, fallbackName: string): ParsedPreset {
 }
 
 export function applyPresetPatch(recipe: Recipe, patch: PresetPatch): Recipe {
-  return { ...recipe, ...patch, curves: { ...recipe.curves, ...patch.curves } };
+  return { ...recipe, ...patch, curves: { ...recipe.curves, ...patch.curves }, hsl: mergeHsl(recipe.hsl, patch.hsl) };
 }
 
 export async function createPreset(xml: string, filename: string): Promise<SavedPreset> {

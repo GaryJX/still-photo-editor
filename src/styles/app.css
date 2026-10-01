@@ -87,6 +87,11 @@ svg { flex-shrink: 0; }
 .advanced-controls summary { cursor: pointer; font-size: 11px; color: #66745d; padding: 6px 0; }
 .advanced-controls[open] summary { margin-bottom: 16px; }
 .curve-section > summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+.hsl-section > summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+.color-swatches { display: flex; justify-content: space-between; gap: 2px; margin: 18px 0; }
+.color-swatches button { border: 2px solid transparent; padding: 2px; background: transparent; border-radius: 50%; display: grid; place-items: center; }
+.color-swatches button[aria-pressed="true"] { border-color: var(--accent); }
+.color-swatches span { display: block; width: 17px; height: 17px; border-radius: 50%; }
 .curve-help { font-size: 11px; line-height: 1.7; color: #66705f; }
 .curve-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 15px 0; }
 .curve-toolbar select { min-width: 0; background: #f6f7f3; border: 1px solid #dde2d5; border-radius: 5px; padding: 6px; color: #526247; font: inherit; font-size: 11px; }

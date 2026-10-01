@@ -6,7 +6,7 @@ Build a useful photo editor that runs entirely in the browser, uses Rust/WebAsse
 
 **Status:** Milestones 0 and 1 complete and published. Milestone 2 has global light/color controls, master/RGB curves, edit history, and comparison; HSL and geometry remain. Dark mode is published. Milestone 3's initial supported XMP subset and saved library are implemented. Milestones 4–5 remain open; XMP export is queued as Milestone 6.
 
-**Next action:** Finish HSL and crop/rotation, extending the XMP mapper as their renderers ship. Continue export/UX and release checks afterwards. Native unsaved-edit protection is implemented. XMP export remains after the existing roadmap.
+**Next action:** Implement crop/rotation with aligned before/after previews and full-resolution exports. Continue export/UX and release checks afterwards. HSL and its XMP mappings are implemented. XMP export remains after the existing roadmap; `Look` compatibility has a separate follow-up milestone.
 
 ## Product boundaries
 
@@ -87,7 +87,7 @@ Applying a preset changes only supported fields present in that file, preserves 
 
 ### Initial mapping targets
 
-Current implementation and limits are recorded in `docs/xmp-support.md`. Exposure, contrast, saturation/vibrance, relative temperature/tint, and master/RGB curves are mapped. Absolute RAW white balance, HSL, and the other unsupported groups below remain future work.
+Current implementation and limits are recorded in `docs/xmp-support.md`. Exposure, contrast, saturation/vibrance, relative temperature/tint, master/RGB curves, and HSL are mapped. Absolute RAW white balance and the other unsupported groups below remain future work.
 
 | Adobe field family | Planned behavior |
 | --- | --- |
@@ -135,7 +135,7 @@ If storage is unavailable or full, keep the preset usable for the current sessio
 - [x] Define and document the versioned global-adjustment recipe, operation order, color transforms, and parameter ranges; extend it as new controls ship.
 - [x] Implement contrast, warmth/tint, and saturation/vibrance.
 - [x] Implement master/RGB curves.
-- [ ] Implement HSL bands.
+- [x] Implement HSL bands and corresponding XMP mappings.
 - [ ] Implement normalized crop and 90-degree rotation with preview/export agreement.
 - [x] Add recipe history, grouped slider gestures, per-control reset, and reset-all.
 - [x] Add before/after comparison using matching geometry. A centered, draggable divider now reveals cached original/edited previews; future crop/rotation must transform both consistently.
@@ -193,6 +193,20 @@ Work on this only after completing the existing roadmap above. Requested by the 
 
 **Exit condition:** a user can save their look, download an XMP preset, and reapply it to another photo, with honest compatibility reporting.
 
+### 7. Adobe `Look` and profile compatibility — feasibility and supported subset
+
+Requested by the user after encountering unsupported `Look` settings in real presets. Investigate representative `crs:Look` blocks first; do not promise support for every Adobe profile or treat a look as an ordinary slider.
+
+- [ ] Inspect user-provided examples and distinguish profile references, parameterized looks, and self-contained transform data. The user has been asked for an example block.
+- [ ] Improve the compatibility report to identify the look/profile name and any missing dependency rather than only saying `Look` is unsupported.
+- [ ] Document which profile/lookup-table formats can be decoded and rendered locally with known, reusable specifications and available data.
+- [ ] Implement a supported subset where feasible, with explicit version/format handling, amount/blending semantics, and a documented position in the color pipeline.
+- [ ] Offer a local dependency import workflow if a supported look needs a separate user-supplied profile or LUT. Never fetch paths/URLs embedded in a preset automatically.
+- [ ] Preserve unsupported look data in the original XMP and explain when an unavailable Adobe profile prevents reproduction. Do not silently omit it while claiming full preset support.
+- [ ] Verify reference fixtures, neutral/identity behavior, preview/export agreement, and interaction with the existing adjustments.
+
+**Exit condition:** feasible look types are supported and tested; unresolved or unavailable profile dependencies receive actionable compatibility messages. Broader Adobe rendering parity is not assumed.
+
 ## Performance targets and verification
 
 These are initial targets, not established guarantees:
@@ -222,6 +236,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 | 2026-09-30 | Prioritize the before/after divider, then resume color/history work | User explicitly requested this interaction and asked for a commit/push after each working addition |
 
 ## Implementation log
+
+- **2026-09-30 — Color mix:** added engine 0.4.0 with eight HSL ranges, smooth interpolation between neighboring hue centers, neutral protection, and a zero-adjustment fast path. The UI exposes hue/intensity/brightness per color with resets, keyboard input, and gesture history. Parser version 2 maps all 24 corresponding XMP fields and preserves unspecified components. Fourteen Rust tests, six frontend tests, and 22 functional WebKit workflows passed across the main and focused correction runs. End-to-end checks cover targeted pixel changes, export agreement, undo, and partial/invalid XMP fields. A rounding issue at saturated endpoints was fixed by preserving no-op transforms exactly. Added a dedicated `Look` compatibility follow-up after the user's request.
 
 - **2026-09-30 — Unsaved-edit protection:** added a conditional native `beforeunload` handler keyed to the current recipe and last successfully generated/downloaded PNG. Default settings never warn; new edits after export do, and undoing back to the export clears the warning. A new image clears the previous export baseline. Production build, six frontend tests, and all 20 functional WebKit workflows passed, including a real reload and export/reset/undo conditions. XMP import/library deployment (`80be838`) succeeded.
 

@@ -19,7 +19,7 @@ function chunk(type: string, data: Buffer) {
 }
 
 /** Generated fixtures avoid depending on private photos or external assets. */
-export function makePng(width = 64, height = 48, gradient = false, alpha = 255): Buffer {
+export function makePng(width = 64, height = 48, gradient = false, alpha = 255, color = [128, 64, 0]): Buffer {
   const header = Buffer.alloc(13);
   header.writeUInt32BE(width, 0);
   header.writeUInt32BE(height, 4);
@@ -29,9 +29,9 @@ export function makePng(width = 64, height = 48, gradient = false, alpha = 255):
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const offset = y * (width * 4 + 1) + 1 + x * 4;
-      pixels[offset] = gradient ? Math.round(x / width * 255) : 128;
-      pixels[offset + 1] = gradient ? Math.round(y / height * 255) : 64;
-      pixels[offset + 2] = gradient ? (x + y) % 256 : 0;
+      pixels[offset] = gradient ? Math.round(x / width * 255) : color[0];
+      pixels[offset + 1] = gradient ? Math.round(y / height * 255) : color[1];
+      pixels[offset + 2] = gradient ? (x + y) % 256 : color[2];
       pixels[offset + 3] = alpha;
     }
   }

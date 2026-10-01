@@ -1,3 +1,4 @@
+mod hsl;
 use wasm_bindgen::prelude::*;
 
 /// Own the decoded source and smaller preview in WASM memory. Neither is edited
@@ -26,10 +27,12 @@ impl ImageEngine {
         &self,
         values: &[f32],
         curve_values: &[f32],
+        hsl_values: &[f32],
         full_resolution: bool,
     ) -> Result<Vec<u8>, JsValue> {
         let settings = validate_settings(values).map_err(JsValue::from_str)?;
         let curves = parse_curves(curve_values).map_err(JsValue::from_str)?;
+        let bands = hsl::parse(hsl_values).map_err(JsValue::from_str)?;
         Ok(apply_adjustments(
             if full_resolution {
                 &self.source
@@ -38,6 +41,7 @@ impl ImageEngine {
             },
             &settings,
             &curves,
+            &bands,
         ))
     }
 
@@ -122,7 +126,12 @@ fn evaluate_curve(curve: &Curve, value: f32) -> f32 {
     curve.last().unwrap().1
 }
 
-fn apply_adjustments(input: &[u8], settings: &[f32; 6], curves: &[Curve; 4]) -> Vec<u8> {
+fn apply_adjustments(
+    input: &[u8],
+    settings: &[f32; 6],
+    curves: &[Curve; 4],
+    bands: &hsl::Bands,
+) -> Vec<u8> {
     let [exposure, contrast, warmth, tint, saturation, vibrance] = *settings;
     let w = warmth / 100.0;
     let t = tint / 100.0;
@@ -143,11 +152,16 @@ fn apply_adjustments(input: &[u8], settings: &[f32; 6], curves: &[Curve; 4]) -> 
     for channel in 0..3 {
         for (i, entry) in tables[channel].iter_mut().enumerate() {
             let linear = srgb_to_linear(i as f32 / 255.0) * gain * balance[channel];
-            let encoded = linear_to_srgb(linear);
+            let encoded = if exposure == 0.0 && warmth == 0.0 && tint == 0.0 {
+                i as f32 / 255.0
+            } else {
+                linear_to_srgb(linear)
+            };
             let tone = ((encoded - 0.5) * slope + 0.5).clamp(0.0, 1.0);
             *entry = evaluate_curve(&curves[channel + 1], evaluate_curve(&curves[0], tone));
         }
     }
+    let mix_colors = bands.iter().flatten().any(|value| *value != 0.0);
     let mut output = input.to_vec();
     for pixel in output.chunks_exact_mut(4) {
         let rgb = [
@@ -160,9 +174,16 @@ fn apply_adjustments(input: &[u8], settings: &[f32; 6], curves: &[Curve; 4]) -> 
         let minimum = rgb[0].min(rgb[1]).min(rgb[2]);
         let amount =
             (1.0 + saturation / 100.0) * (1.0 + vibrance / 100.0 * (1.0 - (maximum - minimum)));
+        let mut color = if saturation == 0.0 && vibrance == 0.0 {
+            rgb
+        } else {
+            rgb.map(|channel| (luma + (channel - luma) * amount).clamp(0.0, 1.0))
+        };
+        if mix_colors {
+            color = hsl::apply(color, bands);
+        }
         for channel in 0..3 {
-            pixel[channel] =
-                ((luma + (rgb[channel] - luma) * amount).clamp(0.0, 1.0) * 255.0).round() as u8;
+            pixel[channel] = (color[channel].clamp(0.0, 1.0) * 255.0).round() as u8;
         }
     }
     output
@@ -176,7 +197,12 @@ mod tests {
         1.0, 1.0,
     ];
     fn adjust(input: &[u8], settings: &[f32; 6]) -> Vec<u8> {
-        apply_adjustments(input, settings, &parse_curves(&IDENTITY).unwrap())
+        apply_adjustments(
+            input,
+            settings,
+            &parse_curves(&IDENTITY).unwrap(),
+            &[[0.0; 3]; 8],
+        )
     }
     #[test]
     fn curves_compose_master_then_channel_and_interpolate_linearly() {
@@ -184,10 +210,24 @@ mod tests {
         curves[0] = vec![(0.0, 0.2), (1.0, 0.8)];
         curves[1] = vec![(0.0, 0.0), (1.0, 0.5)];
         assert_eq!(
-            apply_adjustments(&[0, 0, 0, 127], &[0.0; 6], &curves),
+            apply_adjustments(&[0, 0, 0, 127], &[0.0; 6], &curves, &[[0.0; 3]; 8]),
             [26, 51, 51, 127]
         );
         assert!((evaluate_curve(&curves[0], 0.5) - 0.5).abs() < 0.00001);
+    }
+    #[test]
+    fn color_mix_preserves_exact_neutral_pipeline_endpoints() {
+        let mut bands = [[0.0; 3]; 8];
+        bands[3][1] = -100.0;
+        assert_eq!(
+            apply_adjustments(
+                &[0, 255, 0, 128],
+                &[0.0; 6],
+                &parse_curves(&IDENTITY).unwrap(),
+                &bands
+            ),
+            [128, 128, 128, 128]
+        );
     }
     #[test]
     fn malformed_curves_are_rejected() {
@@ -229,18 +269,28 @@ mod tests {
     fn rendering_never_compounds_edits_or_mutates_the_original() {
         let source = vec![128, 64, 32, 255];
         let engine = ImageEngine::new(source.clone(), source.clone()).unwrap();
-        let first = engine.render(&exposure(2.0), &IDENTITY, false).unwrap();
+        let first = engine
+            .render(&exposure(2.0), &IDENTITY, &[0.0; 24], false)
+            .unwrap();
         assert_eq!(
-            engine.render(&exposure(2.0), &IDENTITY, false).unwrap(),
+            engine
+                .render(&exposure(2.0), &IDENTITY, &[0.0; 24], false)
+                .unwrap(),
             first
         );
         assert_eq!(
-            engine.render(&exposure(0.0), &IDENTITY, true).unwrap(),
+            engine
+                .render(&exposure(0.0), &IDENTITY, &[0.0; 24], true)
+                .unwrap(),
             source
         );
         assert_eq!(
-            engine.render(&exposure(-1.0), &IDENTITY, false).unwrap(),
-            engine.render(&exposure(-1.0), &IDENTITY, true).unwrap()
+            engine
+                .render(&exposure(-1.0), &IDENTITY, &[0.0; 24], false)
+                .unwrap(),
+            engine
+                .render(&exposure(-1.0), &IDENTITY, &[0.0; 24], true)
+                .unwrap()
         );
     }
     #[test]

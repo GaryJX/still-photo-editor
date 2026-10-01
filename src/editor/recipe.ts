@@ -1,6 +1,7 @@
 import { defaultCurves, type Curves } from './curves';
+import { defaultHsl, type HslSettings } from './hsl';
 
-export const ENGINE_VERSION = '0.3.0';
+export const ENGINE_VERSION = '0.4.0';
 export const adjustmentKeys = ['exposure', 'contrast', 'warmth', 'tint', 'saturation', 'vibrance'] as const;
 export type Adjustment = typeof adjustmentKeys[number];
 
@@ -14,12 +15,14 @@ export interface Recipe {
   saturation: number;
   vibrance: number;
   curves: Curves;
+  hsl: HslSettings;
 }
 
 export const initialRecipe: Recipe = {
   schemaVersion: 1, engineVersion: ENGINE_VERSION,
   exposure: 0, contrast: 0, warmth: 0, tint: 0, saturation: 0, vibrance: 0,
   curves: defaultCurves(),
+  hsl: defaultHsl(),
 };
 
 export function adjustmentValue(key: Adjustment, value: number): number {

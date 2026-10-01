@@ -1,4 +1,4 @@
-# Processing contract: engine 0.3.0
+# Processing contract: engine 0.4.0
 
 ## Input and output
 
@@ -13,7 +13,7 @@ Current import limits are 60 MiB compressed, 40 megapixels decoded, and 16,384 p
 ```json
 {
   "schemaVersion": 1,
-  "engineVersion": "0.3.0",
+  "engineVersion": "0.4.0",
   "exposure": 0,
   "contrast": 0,
   "warmth": 0,
@@ -37,8 +37,9 @@ The current operation order is:
 2. Multiply by `2^exposure` and the relative white-balance gains described below.
 3. Convert back to sRGB, apply contrast around 0.5, then clamp to [0, 1].
 4. Apply the master curve, then the corresponding RGB channel curve.
-5. Apply saturation/vibrance around weighted sRGB luma; clamp and round to the nearest 8-bit value.
-6. Copy alpha unchanged.
+5. Apply saturation/vibrance around weighted sRGB luma and clamp.
+6. Apply color mix in HSL, then round to the nearest 8-bit value.
+7. Copy alpha unchanged.
 
 The first four operations are composed into three 256-entry float tables. Saturation/vibrance then operate on float RGB values for each pixel, with one final quantization. This avoids full-resolution float buffers and repeated per-pixel powers.
 
@@ -49,6 +50,8 @@ All controls except exposure use [-100, 100]. With warmth `w` and tint `t` scale
 Contrast maps each encoded channel `v` to `(v - 0.5) * 2^(contrast/100) + 0.5`. Saturation/vibrance use luma weights `[0.2126, 0.7152, 0.0722]` on encoded RGB, with a chroma multiplier `(1 + saturation/100) * (1 + vibrance/100 * (1 - (maxRGB - minRGB)))`. This is the editor's documented model, not an implementation of Adobe's proprietary algorithms.
 
 Example: `[128, 64, 0, 127]` at +1 EV becomes `[176, 90, 0, 127]`. Identity exposure preserves all byte values exactly inside the Rust engine. Browser canvas round-trips can still quantize partially transparent RGB values because of premultiplication.
+
+Color mix adds an `hsl` recipe object with hue/saturation/luminance values for red, orange, yellow, green, aqua, blue, purple, and magenta (all default to zero). Hue centers are 0°, 30°, 60°, 120°, 180°, 240°, 270°, and 300°. Adjacent ranges blend linearly, including the red wraparound. Hue values map to ±30°, saturation multiplies by 0–2, and luminance offsets HSL lightness by up to ±0.5. Effects fade near neutral colors using `min(1, HSL saturation * 4)`; exact grays remain unchanged. Zero settings bypass HSL conversion. Adobe equivalence is approximate.
 
 ## Work scheduling and memory
 
@@ -62,4 +65,4 @@ The canvas is updated in a layout effect so the visible pixels agree with the co
 
 History stores up to 100 immutable recipe snapshots, groups a slider gesture into one step, and clears redo when a new edit is committed. It never stores full-image history buffers. Comparison position is independent of the recipe and history.
 
-XMP import maps a documented subset of fields to this recipe; see [xmp-support.md](xmp-support.md). This engine does not yet implement HSL, crop, saved image sessions, wide-gamut/HDR output, or RAW development. No hidden alternative renderer or server-side image processing is used.
+XMP import maps a documented subset of fields to this recipe; see [xmp-support.md](xmp-support.md). This engine does not yet implement crop, saved image sessions, wide-gamut/HDR output, or RAW development. No hidden alternative renderer or server-side image processing is used.

@@ -9,8 +9,9 @@ The editor imports a documented subset of Lightroom/Camera Raw preset settings. 
 | `Saturation`, `Vibrance` | Approximate color adjustments, -100 to +100 |
 | `IncrementalTemperature`, `IncrementalTint` | Approximate relative warmth/tint, -100 to +100 |
 | `ToneCurvePV2012`, `ToneCurvePV2012Red`, `ToneCurvePV2012Green`, `ToneCurvePV2012Blue` | 2–32 ordered points spanning input 0–255; piecewise-linear interpolation |
+| `HueAdjustment*`, `SaturationAdjustment*`, `LuminanceAdjustment*` | Approximate color-mix adjustments for Red, Orange, Yellow, Green, Aqua, Blue, Purple, and Magenta; -100 to +100 |
 | `Temperature`, `Tint`, `WhiteBalance` | Unsupported absolute RAW white balance; there is no reliable mapping without the source camera/color context |
-| HSL bands, grading/calibration, profiles/LUTs, highlights/shadows, clarity/dehaze, sharpening/noise reduction, grain/vignette, masks/healing, geometry | Unsupported in the current importer; listed in the compatibility report |
+| Grading/calibration, profiles/LUTs, highlights/shadows, clarity/dehaze, sharpening/noise reduction, grain/vignette, masks/healing, geometry | Unsupported in the current importer; listed in the compatibility report |
 
 The parser supports attributes and element-form scalar values, namespace-prefix variations, and RDF sequence curve arrays. It reads only Camera Raw settings on top-level RDF descriptions, so exposure values inside a local mask cannot accidentally become global adjustments. It recognizes common process-version markers; unrecognized versions are flagged while explicitly supported fields retain their documented mappings. Legacy fields such as `Exposure` are not silently treated as `Exposure2012`.
 
@@ -27,6 +28,8 @@ Presets are stored in IndexedDB in this browser, including the original XML, a c
 When browser storage is unavailable or full, imports remain usable for the current session and the UI explains that they were not saved. Browser storage can also be cleared or evicted. **Download original XMP** backs up the exact imported file, including settings this editor cannot interpret.
 
 Exporting current edits as a new XMP preset is a separate, later roadmap milestone. The backup action does not serialize current image edits.
+
+`Look`/creative-profile support is now a dedicated roadmap item. A look may require separate profile or lookup-table data, so feasibility depends on the actual preset and available dependencies. The first step is to inspect representative look blocks and improve missing-profile reporting; arbitrary Adobe profile compatibility is not promised.
 
 ## Validation
 

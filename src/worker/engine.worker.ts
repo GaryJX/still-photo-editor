@@ -4,6 +4,7 @@ import { imageInfo } from '../editor/image';
 import type { DecodedPhoto, EngineApi, Frame, LoadedPhoto, PhotoInfo } from './types';
 import { ENGINE_VERSION, initialRecipe, recipeKey, recipeValues, type Recipe } from '../editor/recipe';
 import { curveValues } from '../editor/curves';
+import { hslValues } from '../editor/hsl';
 
 const wasm = init();
 let memory: WebAssembly.Memory;
@@ -24,7 +25,7 @@ function render(recipe: Recipe, fullResolution = false): Frame {
   if (!engine || !info) throw new Error('Open a photo first.');
   if (recipe.schemaVersion !== 1 || recipe.engineVersion !== ENGINE_VERSION) throw new Error('This edit recipe is not supported.');
   const started = performance.now();
-  const pixels = engine.render(recipeValues(recipe), curveValues(recipe.curves), fullResolution);
+  const pixels = engine.render(recipeValues(recipe), curveValues(recipe.curves), hslValues(recipe.hsl), fullResolution);
   return {
     pixels,
     width: fullResolution ? info.width : info.previewWidth,
