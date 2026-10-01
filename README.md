@@ -18,6 +18,7 @@ The editor, branded **Still**, now includes the first processing milestone, a dr
 - Undo/redo edits, reset one control, or reset everything. A slider gesture is one undo step; ⌘/Ctrl+Z and ⌘/Ctrl+Shift+Z work outside text fields.
 - Export a full-size PNG while preserving transparency.
 - Use the editor on desktop or a narrow screen, with keyboard-accessible controls.
+- Switch between light and dark mode. The first visit follows your system setting; an explicit choice is remembered in this browser.
 
 Images remain on the device. The original stays unchanged. Reloading clears the editing session. Source metadata is not preserved in exported PNGs; the processing pipeline uses SDR sRGB.
 

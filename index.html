@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f7f8fa" />
+    <script>
+      (() => {
+        let preference;
+        try { preference = localStorage.getItem('still-theme'); } catch {}
+        document.documentElement.dataset.theme = preference === 'dark' || preference === 'light'
+          ? preference : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      })();
+    </script>
     <meta name="description" content="A simple photo editor. Open, adjust, and export your photos, right in your browser." />
     <title>Still — Photo editor</title>
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />

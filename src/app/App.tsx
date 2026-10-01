@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { transfer, wrap, type Remote } from 'comlink';
 import { Icon } from '../components/Icon';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { ComparisonPreview } from '../components/ComparisonPreview';
 import { decodeOnMain, encodeOnMain, validatePhoto } from '../editor/image';
 import { adjustmentValue, initialRecipe, recipeKey, type Adjustment, type Recipe } from '../editor/recipe';
@@ -186,6 +187,7 @@ export function App() {
         <a class="brand" href={import.meta.env.BASE_URL} aria-label="Still photo editor home"><span class="brand-mark"><Icon name="image" size={22} /></span><span>still<span class="brand-dot">.</span></span></a>
         <span class="header-description">A little light. A new perspective.</span>
         <div class="header-actions">
+          <ThemeToggle />
           <button class="button button-quiet" disabled={!!busy || !ready} onClick={() => input.current?.click()}><Icon name="plus" size={17} />Open photo</button>
           <button class="button button-primary" disabled={disabled} onClick={() => void exportPhoto()}><Icon name="download" size={17} />{busy === 'exporting' ? 'Exporting…' : 'Export PNG'}</button>
         </div>

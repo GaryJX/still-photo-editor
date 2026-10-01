@@ -1,0 +1,63 @@
+:root { color-scheme: light; }
+.theme-toggle { width: 39px; padding: 9px; }
+.theme-toggle svg { display: block !important; }
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  color: #e6ebe2;
+  background: #151916;
+  --muted: #aab3a3;
+  --accent: #a3ba93;
+  --line: #333c31;
+}
+[data-theme="dark"] .workspace { background: #1d231e; }
+[data-theme="dark"] .stage { background: #111713; }
+[data-theme="dark"] .brand-mark { color: #1c2917; }
+[data-theme="dark"] .brand-dot,
+[data-theme="dark"] .panel-icon { color: #b5cba5; }
+[data-theme="dark"] .button-primary { color: #162010; }
+[data-theme="dark"] .button-primary:hover:not(:disabled) { background: #b7cba9; }
+[data-theme="dark"] .button-quiet { color: #d2dccc; border-color: #404b3c; }
+[data-theme="dark"] .button-quiet:hover:not(:disabled) { background: #303b2c; }
+[data-theme="dark"] .button-selected { background: #33452c; color: #dae9cf; border-color: #647e54; }
+[data-theme="dark"] .eyebrow,
+[data-theme="dark"] .local-badge,
+[data-theme="dark"] .empty-state p,
+[data-theme="dark"] .format-note,
+[data-theme="dark"] .stage-footer,
+[data-theme="dark"] .range-labels,
+[data-theme="dark"] .control-help,
+[data-theme="dark"] .tip p,
+[data-theme="dark"] .export-note,
+[data-theme="dark"] .app-footer,
+[data-theme="dark"] .operation-status,
+[data-theme="dark"] .curve-help,
+[data-theme="dark"] .curve-numbers label { color: #aab7a2; }
+[data-theme="dark"] .photo-name,
+[data-theme="dark"] .tip strong { color: #d5e2cb; }
+[data-theme="dark"] .stage-footer,
+[data-theme="dark"] .adjustment-section { border-color: var(--line); }
+[data-theme="dark"] .numeric-control,
+[data-theme="dark"] .curve-toolbar select,
+[data-theme="dark"] .curve-numbers input { background: #293226; border-color: #414d3a; color: #d2e3c4; }
+[data-theme="dark"] .numeric-control input { color: #d2e3c4; }
+[data-theme="dark"] .numeric-control span { color: #adbba2; }
+[data-theme="dark"] .text-button,
+[data-theme="dark"] .reset-control,
+[data-theme="dark"] .advanced-controls summary { color: #b5cba5; }
+[data-theme="dark"] .inactive { color: #96a18d; }
+[data-theme="dark"] .tip { background: #252f22; border-color: #35402f; }
+[data-theme="dark"] .tip-mark { color: #acbf9b; }
+[data-theme="dark"] .loading-overlay { background: #111713e8; color: #d4e2c9; }
+[data-theme="dark"] .drop-overlay { background: #1b291af5; color: #d4e2c9; border-color: #8fae78; }
+[data-theme="dark"] .error-banner { background: #402820; color: #f3c4b1; border-color: #684237; }
+[data-theme="dark"] .illustration-back { background: #35402f; border-color: #263022; }
+[data-theme="dark"] .illustration-front { border-color: #3f4c37; }
+[data-theme="dark"] .curve-plot { color: #b5cba5; }
+[data-theme="dark"] .curve-red { color: #ec9d92; }
+[data-theme="dark"] .curve-green { color: #9eca8f; }
+[data-theme="dark"] .curve-blue { color: #9ebce7; }
+[data-theme="dark"] .curve-plot rect { fill: #20291e; stroke: #46503f; }
+[data-theme="dark"] .curve-plot path { stroke: #46503f; }
+[data-theme="dark"] .curve-plot circle { fill: #1d231e; }
+@media (max-width: 370px) { .topbar { gap: 8px; } .header-actions { gap: 5px; } .header-actions .button { padding: 8px; font-size: 10px; } .header-actions .theme-toggle { width: 32px; } }

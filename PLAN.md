@@ -206,6 +206,8 @@ Run the checks appropriate to each milestone and record results. Do not broaden 
 
 ## Implementation log
 
+- **2026-09-30 — Dark mode:** added a sun/moon toggle, first-paint system-preference detection, localStorage persistence with a session fallback, and a dark palette for the workspace and controls. Verified both storage cases, unchanged image pixels, persistence after reload, and the 320 px header layout; inspected desktop/mobile screenshots. The corrected color-engine deployment (`3011f82`) succeeded. Curve editing remains in progress.
+
 - **2026-09-30 — Global color and history:** implemented engine 0.2.0 with contrast, normalized relative warmth/tint, saturation, and vibrance. Float tables compose point transforms before final quantization. Added six labeled controls, progressive disclosure for vibrance, bounded snapshot history, grouped slider gestures, per-control/global reset, and keyboard undo/redo. Eight Rust tests, four frontend tests, the production build, and nine functional WebKit workflows passed. The previous comparison deployment (`d271b24`) was verified on the live site.
 
 - **2026-09-30 — Before/after divider:** added a split preview starting at 50%, original left / edited right, with pointer capture, touch support, keyboard arrows/Home/End, recentering, and original-view shortcut. Comparison reuses cached previews, preserves the divider while editing, resets on a new photo, and leaves exports unchanged. Production build and seven functional WebKit checks passed under the Pages project path, including rendered-pixel checks at the midpoint and both endpoints.
